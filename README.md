@@ -87,6 +87,14 @@ raw_pdfs/, work/         corpus local e intermediários (ignorados pelo Git)
 9. Lacunas aparecem: isolados, pontes ausentes e pendências são resultados.
 10. Só trechos curtos das fontes; nunca reproduzir passagens longas no site.
 
+## Segurança e dados pessoais
+
+- O repositório é público e não contém segredos: a chave da API Anthropic vive só na variável de ambiente `ANTHROPIC_API_KEY` da máquina de quem extrai; `raw_pdfs/` e `work/` (textos integrais, extrações brutas) nunca são versionados.
+- A base registra apenas **informação profissional publicada** sobre pessoas (formação, atuação, sociedades, parentescos citados em fontes acadêmicas), sempre com fonte, página e trecho curto. Não se registram dados de contato, documentos, saúde ou opinião política. Pedidos de correção ou remoção de pessoas vivas devem ser abertos como *issue* neste repositório e são atendidos pelo editor.
+- A aplicação interna (`gap triage`) não tem autenticação e escreve na base: rode-a apenas em `127.0.0.1` (padrão). Nunca a exponha na rede.
+- O site público é estático e não coleta dados; carrega D3 do cdnjs (com hash de integridade) e fontes do Google Fonts.
+- O fluxo de CI usa apenas permissões mínimas por job (leitura do código; escrita só no deploy do Pages) e nenhum segredo.
+
 ## Estado
 
 - Fase 1 (fundação) e Fase 2 (funil + triagem) implementadas; benchmark do pré-filtro em Afonso 2008: 28/28 relações localizáveis recuperadas.

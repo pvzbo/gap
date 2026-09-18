@@ -308,6 +308,12 @@ def triage(paths: Paths, host: str, porta: int, fonte: str | None, reload: bool)
 
     os.environ["GAP_ROOT"] = str(paths.root)
     url = f"http://{host}:{porta}/" + (f"triagem/{fonte}" if fonte else "")
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        click.echo(
+            "ATENÇÃO: a aplicação de triagem não tem autenticação e grava na base. "
+            f"Expor em '{host}' permite que qualquer pessoa na rede edite os dados e dispare chamadas à API Anthropic. "
+            "Use 127.0.0.1 ou um túnel autenticado."
+        )
     click.echo(f"Triagem em {url}  (Ctrl+C para encerrar)")
     uvicorn.run("gap.app.server:app", host=host, port=porta, reload=reload, log_level="warning")
 

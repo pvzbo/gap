@@ -388,6 +388,7 @@ function renderSobre(){
     <li>Pesos são computados, nunca atribuídos à mão: w(confiança) × (1 + 0,5 × (n.º de fontes independentes − 1)).</li>
     <li>Lacunas aparecem: nós isolados, pontes ausentes e pendências são resultados.</li>
     <li>Os dados vivem em um repositório Git; cada estado tem um commit citável.</li>
+    <li>Só informação profissional publicada em fontes acadêmicas, com fonte, página e trecho curto. Correções ou pedidos de remoção: abra uma <i>issue</i> no repositório do projeto.</li>
   </ul></section>
   <section><h3>Contribuir</h3><p>A base cresce por triagem de fontes (teses, artigos, anais, acervos). Propostas externas entram na mesma fila de revisão e exigem aprovação editorial. Exportações completas (CSV, GEXF, GraphML, relatório de métricas) são regeneradas a cada build.</p></section>`;
 }

@@ -5,10 +5,11 @@ Rotas JSON: ``/api/...`` documentadas em ``/docs``.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import Body, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -34,6 +35,22 @@ if paths.site.exists():
 @app.exception_handler(ErroTriagem)
 async def _erro_triagem(_req: Request, exc: ErroTriagem) -> JSONResponse:
     return JSONResponse({"erro": str(exc)}, status_code=400)
+
+
+_ID_SEGURO = re.compile(r"^(?:[a-z0-9]+(?:-[a-z0-9]+)*|manual|_)$")
+
+
+def fonte_segura(fonte_id: str) -> str:
+    """Ids de fonte viram nomes de pasta em work/: só slugs, nunca caminhos."""
+    if not _ID_SEGURO.match(fonte_id or ""):
+        raise HTTPException(400, f"Id de fonte inválido: {fonte_id!r}")
+    return fonte_id
+
+
+def pessoa_segura(pid: str) -> str:
+    if not _ID_SEGURO.match(pid or ""):
+        raise HTTPException(400, f"Id de pessoa inválido: {pid!r}")
+    return pid
 
 
 # --------------------------------------------------------------------------- #
@@ -64,7 +81,7 @@ def triagem_sem_fonte() -> RedirectResponse:
 
 
 @app.get("/triagem/{fonte_id}", response_class=HTMLResponse)
-def triagem(request: Request, fonte_id: str) -> HTMLResponse:
+def triagem(request: Request, fonte_id: str = Depends(fonte_segura)) -> HTMLResponse:
     ds = load_dataset(paths)
     fonte = ds.fontes_por_id.get(fonte_id)
     if fonte is None and fonte_id != "manual":
@@ -106,7 +123,7 @@ def api_vocabulario() -> dict[str, Any]:
 
 
 @app.get("/api/fila/{fonte_id}")
-def api_fila(fonte_id: str) -> dict[str, Any]:
+def api_fila(fonte_id: str = Depends(fonte_segura)) -> dict[str, Any]:
     ds = load_dataset(paths)
     itens = carregar_fila(paths, fonte_id) if fonte_id != "manual" else []
     decisoes = carregar_decisoes(paths, fonte_id)
@@ -131,13 +148,13 @@ def api_fila(fonte_id: str) -> dict[str, Any]:
 
 
 @app.get("/api/par/{a}/{b}")
-def api_par(a: str, b: str) -> list[dict[str, Any]]:
+def api_par(a: str = Depends(pessoa_segura), b: str = Depends(pessoa_segura)) -> list[dict[str, Any]]:
     ds = load_dataset(paths)
     return relacoes_do_par(ds, a, b)
 
 
 @app.get("/api/pessoa/{pid}/relacoes")
-def api_relacoes_pessoa(pid: str) -> list[dict[str, Any]]:
+def api_relacoes_pessoa(pid: str = Depends(pessoa_segura)) -> list[dict[str, Any]]:
     ds = load_dataset(paths)
     out = []
     for r in ds.relacoes:
@@ -153,6 +170,8 @@ def api_relacoes_pessoa(pid: str) -> list[dict[str, Any]]:
 @app.post("/api/decisao")
 def api_decisao(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     fonte_id = payload.get("fonte") or None
+    if fonte_id is not None:
+        fonte_segura(str(fonte_id))
     if fonte_id == "manual":
         fonte_id = None
     item_id = payload.get("item_id")
@@ -173,7 +192,7 @@ def api_decisao(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
 
 
 @app.post("/api/desfazer/{fonte_id}")
-def api_desfazer(fonte_id: str) -> dict[str, Any]:
+def api_desfazer(fonte_id: str = Depends(fonte_segura)) -> dict[str, Any]:
     return Editor(paths).desfazer(fonte_id)
 
 
@@ -186,12 +205,12 @@ def api_nova_pessoa(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
 
 
 @app.post("/api/fonte/{fonte_id}/processado")
-def api_processado(fonte_id: str, payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+def api_processado(fonte_id: str = Depends(fonte_segura), payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
     return Editor(paths).marcar_processada(fonte_id, bool(payload.get("valor", True)))
 
 
 @app.post("/api/pipeline/{fonte_id}/{estagio}")
-def api_pipeline(fonte_id: str, estagio: str, payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+def api_pipeline(estagio: str, fonte_id: str = Depends(fonte_segura), payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
     ds = load_dataset(paths)
     try:
         if estagio == "chunks":
