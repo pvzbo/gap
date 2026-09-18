@@ -11,9 +11,25 @@ Ajustado para recall. A taxa de descarte por documento é registrada em
 from __future__ import annotations
 
 import datetime as _dt
+import re
 from collections import Counter
 from dataclasses import asdict, dataclass, field
 from typing import Any
+
+# "SOBRENOME, Nome" (entrada de referência bibliográfica) e marcas típicas de lista de referências.
+_RE_REF_AUTOR = re.compile(r"\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ]{3,}(?: [A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})*, [A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+")
+_RE_REF_MARCAS = re.compile(
+    r"dispon[ií]vel em|acesso em|\bdoi\b|https?://|\bIn:|\(ed\.\)|\(org\.\)|\(coord\.\)|\bp\. \d+|\bv\. \d+|\bn\. \d+|"
+    r"dissertação \(|tese \(|trabalho de conclusão|\[entrevista cedida",
+    re.IGNORECASE,
+)
+
+
+def parece_bibliografia(texto: str) -> bool:
+    """Lista de referências / notas bibliográficas: muitos nomes, nenhuma relação afirmada."""
+    autores = len(_RE_REF_AUTOR.findall(texto or ""))
+    marcas = len(_RE_REF_MARCAS.findall(texto or ""))
+    return autores >= 3 or (autores >= 1 and marcas >= 3) or marcas >= 5
 
 from ..config import Paths
 from ..store import Dataset, read_json, read_jsonl, write_json, write_jsonl
@@ -46,12 +62,16 @@ def prefiltrar(
     candidatos: list[Candidato] = []
     n_nome_sem_gatilho = 0
     n_gatilho_sem_nome = 0
+    n_bibliografia = 0
     freq_gatilhos: Counter[str] = Counter()
     freq_pessoas: Counter[str] = Counter()
     por_pagina: Counter[int] = Counter()
 
     for i, ch in enumerate(chunks):
         texto = ch["texto"]
+        if parece_bibliografia(texto):
+            n_bibliografia += 1
+            continue
         norm = normalizar(texto)
         gat = lexico.gatilhos(norm)
         conhecidos = gazetteer.nomes(norm)
@@ -107,6 +127,7 @@ def prefiltrar(
         "taxa_descarte": round(1 - len(candidatos) / n, 4) if n else None,
         "n_com_nome_sem_gatilho": n_nome_sem_gatilho,
         "n_com_gatilho_sem_nome": n_gatilho_sem_nome,
+        "n_bibliografia_descartados": n_bibliografia,
         "n_depoimentos_suspeitos": sum(1 for c in candidatos if c.eh_depoimento),
         "gatilhos_mais_frequentes": freq_gatilhos.most_common(25),
         "pessoas_mais_citadas": freq_pessoas.most_common(25),

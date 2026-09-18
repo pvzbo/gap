@@ -119,6 +119,53 @@ def test_extracao_interrompe_apos_falhas_consecutivas(repo_tmp, monkeypatch):
     assert len(read_jsonl(pasta / "extraidos.jsonl")) == ex.MAX_FALHAS_CONSECUTIVAS
 
 
+def test_prefiltro_descarta_bibliografia(ds_repo, paths_repo):
+    from gap.ingest.prefilter import parece_bibliografia
+
+    ref = ("MARQUES, Sônia; NASLAVSKY, Guilah. Eu vi o modernismo nascer foi no Recife. Vitruvius, São Paulo, ano 11, abr. 2011. "
+           "Disponível em: https://vitruvius.com.br/x. Acesso em: 28 jan. 2020. MESEL, Clarice. Entrevista realizada por e-mail. "
+           "[Entrevista cedida a] Andréa Gáti. Recife, 12 abr. 2018.")
+    assert parece_bibliografia(ref)
+    assert not parece_bibliografia("Ainda estudante foi convidado por Mario Russo para trabalhar no ETCUR, em sociedade com Castro.")
+    gaz = Gazetteer.do_dataset(ds_repo)
+    lex = Lexico.carregar(paths_repo.lexico)
+    cands, stats = prefiltrar([{"chunk_id": "t-p0001-b001", "pagina": 1, "paragrafo": 1, "texto": ref}], gaz, lex)
+    assert cands == [] and stats["n_bibliografia_descartados"] == 1
+
+
+def test_exportar_e_importar_extraidos(repo_tmp, ds_repo):
+    from gap.ingest.extract import exportar_caderno, importar_extraidos
+    from gap.store import load_dataset
+
+    pasta = repo_tmp.work_fonte("afonso-2008")
+    pasta.mkdir(parents=True, exist_ok=True)
+    texto = "Ainda estudante foi convidado por Mario Russo para trabalhar no Escritório Técnico da Cidade Universitária de Recife/ ETCUR."
+    write_jsonl(pasta / "candidatos.jsonl", [{"chunk_id": "afonso-2008-p0004-b002", "pagina": 4, "paragrafo": 2, "texto": texto, "contexto_anterior": "Mauricio Castro nasceu em 1930.",
+                                              "contexto_posterior": "", "nomes_conhecidos": [{"variante": "mario russo", "pessoa_id": "mario-russo", "tokens": 2}],
+                                              "nomes_desconhecidos": [], "gatilhos": [], "tipos_sugeridos": ["mestre-aprendiz"], "eh_depoimento": False, "score": 3.0}])
+    st = exportar_caderno(repo_tmp, load_dataset(repo_tmp), "afonso-2008")
+    assert st["n_candidatos"] == 1
+    caderno = (pasta / "caderno.md").read_text(encoding="utf-8")
+    assert "afonso-2008-p0004-b002" in caderno and "Como preencher" in caderno and (pasta / "extraidos_exemplo.jsonl").exists()
+
+    resposta = repo_tmp.root / "resposta.jsonl"
+    write_jsonl(resposta, [
+        {"candidato_id": "afonso-2008-p0004-b002", "relacoes": [{"origem_nome": "Mario Russo", "destino_nome": "Mauricio Castro", "tipo": "mestre-aprendiz", "simetrico": False,
+                                                                 "descricao": "Convidado por Russo para o ETCUR.", "confianca_sugerida": "documentado",
+                                                                 "trecho": "foi convidado por Mario Russo para trabalhar", "justificativa": "afirmado"}],
+         "mencoes_sem_relacao": []},
+        {"candidato_id": "afonso-2008-p0004-b002", "relacoes": [{"origem_nome": "A", "destino_nome": "B", "tipo": "influencia", "simetrico": False, "descricao": "x",
+                                                                 "confianca_sugerida": "documentado", "trecho": "y", "justificativa": "z"}]},
+        {"candidato_id": "inexistente", "relacoes": []},
+    ])
+    st = importar_extraidos(repo_tmp, "afonso-2008", resposta, modelo="teste")
+    assert st["n_importados"] == 1 and st["n_relacoes"] == 1
+    assert len(st["invalidos"]) == 1 and st["candidatos_desconhecidos"] == ["inexistente"]
+    assert st["trechos_nao_literais"] == []
+    linhas = read_jsonl(pasta / "extraidos.jsonl")
+    assert linhas[0]["modelo"] == "teste" and linhas[0]["importado_de"] == "resposta.jsonl"
+
+
 def test_dedup_chave_e_busca(ds_repo):
     assert chave_relacao("b", "a", "societario", True) == ("a", "b", "societario")
     assert chave_relacao("b", "a", "estudo", False) == ("b", "a", "estudo")

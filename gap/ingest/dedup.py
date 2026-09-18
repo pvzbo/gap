@@ -15,6 +15,7 @@ from typing import Any
 
 from ..config import TIPOS_DIRECIONAIS, TIPOS_RELACAO, Paths
 from ..store import Dataset, read_jsonl, write_jsonl
+from .extract import trecho_e_literal
 from .resolve import Resolvedor
 
 
@@ -93,6 +94,8 @@ def montar_fila(paths: Paths, ds: Dataset, fonte_id: str) -> dict[str, Any]:
                     alertas.append({"tipo": "info", "texto": "Outros vínculos já registrados para o par: " + ", ".join(f"{x['tipo']} ({x['id']})" for x in outras) + "."})
             if r.get("confianca_sugerida") == "hipotese":
                 alertas.append({"tipo": "fraco", "texto": "O extrator classificou como hipótese: o trecho não afirma o vínculo diretamente."})
+            if r.get("trecho") and cand.get("texto") and not trecho_e_literal(r.get("trecho"), cand.get("texto")):
+                alertas.append({"tipo": "fraco", "texto": "O trecho citado não aparece literalmente no parágrafo-alvo — pode ter sido parafraseado; confira antes de aceitar."})
             if not tipo:
                 alertas.append({"tipo": "fraco", "texto": f"Tipo inválido devolvido pelo extrator: {r.get('tipo')!r}."})
             for rr in (ro, rd):

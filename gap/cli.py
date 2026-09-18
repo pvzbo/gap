@@ -201,6 +201,39 @@ def extract(paths: Paths, fonte: str, modelo: str, limite: int | None, ids: str 
     _echo_json(stats)
 
 
+@main.command("export-candidatos")
+@click.argument("fonte")
+@click.option("--limite", type=int, default=None, help="Só os N primeiros candidatos em ordem de leitura.")
+@click.option("--ids", default=None, help="Lista de chunk_ids separados por vírgula.")
+@click.pass_obj
+def export_candidatos(paths: Paths, fonte: str, limite: int | None, ids: str | None) -> None:
+    """Sem chave de API: exporta os candidatos como caderno Markdown + prompts JSONL para leitura humana ou outro modelo."""
+    from .ingest.extract import exportar_caderno
+
+    ds = load_dataset(paths)
+    conj = {s.strip() for s in ids.split(",") if s.strip()} if ids else None
+    st = exportar_caderno(paths, ds, fonte, limite=limite, ids=conj)
+    _echo_json(st)
+    click.echo("Preencha um JSONL no formato do exemplo e importe com: gap import-extraidos "
+               f"{fonte} <arquivo.jsonl>")
+
+
+@main.command("import-extraidos")
+@click.argument("fonte")
+@click.argument("arquivo", type=click.Path(exists=True, path_type=Path))
+@click.option("--modelo", default="manual", show_default=True, help="Rótulo de quem produziu a extração (ex.: claude-code, leitura-paz).")
+@click.pass_obj
+def import_extraidos(paths: Paths, fonte: str, arquivo: Path, modelo: str) -> None:
+    """Valida e incorpora um JSONL de extrações produzido fora do pipeline; depois rode `gap queue`."""
+    from .ingest.extract import importar_extraidos
+
+    st = importar_extraidos(paths, fonte, arquivo, modelo=modelo)
+    _echo_json(st)
+    if st["invalidos"] or st["candidatos_desconhecidos"]:
+        click.echo("Linhas inválidas ou com candidato_id desconhecido foram ignoradas — corrija e importe de novo.")
+        sys.exit(1)
+
+
 @main.command()
 @click.argument("fonte")
 @click.pass_obj

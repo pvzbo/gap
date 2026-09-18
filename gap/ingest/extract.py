@@ -312,3 +312,156 @@ def carregar_extraidos(paths: Paths, fonte_id: str) -> list[dict[str, Any]]:
 
 
 TIPOS_VALIDOS = set(TIPOS_RELACAO)
+
+
+# --------------------------------------------------------------------------- #
+# Caminho sem chave de API: caderno exportável + importação validada
+# --------------------------------------------------------------------------- #
+
+def _norm_ws(s: str | None) -> str:
+    return re.sub(r"\s+", " ", (s or "")).strip().lower()
+
+
+def trecho_e_literal(trecho: str | None, texto: str | None) -> bool:
+    """O `trecho` precisa ser cópia literal do parágrafo-alvo (ignorando espaçamento e caixa)."""
+    t = _norm_ws(trecho)
+    return bool(t) and t in _norm_ws(texto)
+
+
+EXEMPLO_LINHA = {
+    "candidato_id": "<fonte>-p0006-b003",
+    "relacoes": [
+        {
+            "origem_nome": "Mario Russo",
+            "destino_nome": "Reginaldo Esteves",
+            "tipo": "estudo",
+            "subtipo": None,
+            "simetrico": False,
+            "periodo": "1950-1954",
+            "descricao": "Aluno de Russo na EBAP entre 1950 e 1954.",
+            "confianca_sugerida": "documentado",
+            "trecho": "Havendo sido aluno de Russo e posteriormente de Acácio Gil Borsoi",
+            "justificativa": "A frase afirma diretamente a relação professor-aluno.",
+        }
+    ],
+    "depoimentos": [],
+    "mencoes_sem_relacao": ["Gilberto Freyre"],
+    "observacao": None,
+}
+
+INSTRUCOES_CADERNO = """## Como preencher
+
+Este caderno reúne os parágrafos que passaram pelo pré-filtro léxico, em ordem de leitura.
+Para cada parágrafo-alvo (em destaque), registre APENAS relações entre pessoas que o texto AFIRMA
+— co-menção não é relação; semelhança de obra não é relação; "seus professores" sem nome não é relação.
+Os parágrafos vizinhos (em citação) servem só para resolver pronomes e nomes incompletos.
+
+Tipos: heranca · mestre-aprendiz · estudo · trabalho · societario · dissidencia · coautoria-pontual
+Direção: em mestre-aprendiz/estudo a ORIGEM ensina e o DESTINO aprende; em trabalho a ORIGEM contrata/coordena.
+Confiança: documentado (o texto afirma) · tradicao_oral (relato de memória) · hipotese (inferência).
+`trecho` é cópia LITERAL de uma frase do parágrafo-alvo. Posições sobre a existência da "Escola do Recife" vão em `depoimentos`.
+
+A resposta é um arquivo JSONL — uma linha por candidato, no formato de `extraidos_exemplo.jsonl` —
+importado com `gap import-extraidos <fonte> <arquivo>`. Candidatos sem relação podem ser omitidos ou ter listas vazias.
+"""
+
+
+def exportar_caderno(
+    paths: Paths,
+    ds: Dataset,
+    fonte_id: str,
+    *,
+    limite: int | None = None,
+    ids: set[str] | None = None,
+) -> dict[str, Any]:
+    """Exporta os candidatos como caderno Markdown (leitura humana ou qualquer modelo) e como prompts JSONL."""
+    pasta = paths.work_fonte(fonte_id)
+    candidatos = read_jsonl(pasta / "candidatos.jsonl")
+    if not candidatos:
+        raise FileNotFoundError(f"Sem candidatos para '{fonte_id}'. Rode `gap prefilter {fonte_id}` primeiro.")
+    fonte = ds.fontes_por_id.get(fonte_id, {"id": fonte_id})
+    candidatos.sort(key=lambda c: (c.get("pagina") or 0, c.get("paragrafo") or 0))
+    if ids:
+        candidatos = [c for c in candidatos if c["chunk_id"] in ids]
+    if limite is not None:
+        candidatos = candidatos[:limite]
+
+    ref = f"{fonte.get('autor') or ''} — {fonte.get('titulo') or fonte_id} ({fonte.get('ano') or 's.d.'})".strip(" —")
+    md: list[str] = [f"# Caderno de candidatos — {fonte_id}", "", ref, "", f"{len(candidatos)} parágrafo(s) candidato(s). Gerado em {_dt.datetime.now().isoformat(timespec='seconds')}.", "", INSTRUCOES_CADERNO, "---", ""]
+    for c in candidatos:
+        nomes = sorted({n.get("variante", "") for n in c.get("nomes_conhecidos") or []} | set(c.get("nomes_desconhecidos") or []))
+        md.append(f"## {c['chunk_id']} · p. {c.get('pagina')}")
+        md.append("")
+        if c.get("contexto_anterior"):
+            md.append("> " + c["contexto_anterior"].replace("\n", " "))
+            md.append("")
+        md.append(f"**{c['texto']}**")
+        md.append("")
+        if c.get("contexto_posterior"):
+            md.append("> " + c["contexto_posterior"].replace("\n", " "))
+            md.append("")
+        if nomes:
+            md.append(f"_Nomes detectados: {'; '.join(nomes)}_ · _tipos sugeridos: {', '.join(c.get('tipos_sugeridos') or []) or '—'}_")
+            md.append("")
+    caderno = pasta / "caderno.md"
+    caderno.write_text("\n".join(md) + "\n", encoding="utf-8", newline="\n")
+    prompts = pasta / "prompts.jsonl"
+    write_jsonl(prompts, ({"candidato_id": c["chunk_id"], "system": SYSTEM_PROMPT, "user": montar_mensagem(c, fonte)} for c in candidatos))
+    exemplo = pasta / "extraidos_exemplo.jsonl"
+    write_jsonl(exemplo, [EXEMPLO_LINHA])
+    return {"fonte": fonte_id, "n_candidatos": len(candidatos), "caderno": str(caderno), "prompts": str(prompts), "exemplo": str(exemplo)}
+
+
+def importar_extraidos(paths: Paths, fonte_id: str, arquivo: Path, *, modelo: str = "manual") -> dict[str, Any]:
+    """Valida e incorpora um JSONL de extrações produzido fora do pipeline (humano, Claude Code, outro modelo)."""
+    from pydantic import ValidationError
+
+    pasta = paths.work_fonte(fonte_id)
+    candidatos = {c["chunk_id"]: c for c in read_jsonl(pasta / "candidatos.jsonl")}
+    if not candidatos:
+        raise FileNotFoundError(f"Sem candidatos para '{fonte_id}'. Rode `gap prefilter {fonte_id}` primeiro.")
+    rows = read_jsonl(Path(arquivo))
+    arq = pasta / "extraidos.jsonl"
+    existentes = {r["candidato_id"]: r for r in read_jsonl(arq)}
+    importados = n_rel = n_dep = 0
+    invalidos: list[dict[str, Any]] = []
+    desconhecidos: list[str] = []
+    nao_literais: list[str] = []
+    for i, row in enumerate(rows, start=1):
+        cid = row.get("candidato_id")
+        if cid not in candidatos:
+            desconhecidos.append(str(cid or f"linha {i}"))
+            continue
+        try:
+            parsed = ExtracaoChunk.model_validate({k: row.get(k) for k in ("relacoes", "depoimentos", "mencoes_sem_relacao", "observacao") if row.get(k) is not None})
+        except ValidationError as exc:
+            e = exc.errors()[0]
+            invalidos.append({"candidato_id": cid, "erro": f"{'.'.join(str(x) for x in e.get('loc', ()))}: {e.get('msg')}"})
+            continue
+        for r in parsed.relacoes:
+            if not trecho_e_literal(r.trecho, candidatos[cid]["texto"]):
+                nao_literais.append(cid)
+        existentes[cid] = {
+            "candidato_id": cid,
+            "pagina": candidatos[cid].get("pagina"),
+            "modelo": row.get("modelo") or modelo,
+            "extraido_em": _dt.datetime.now().isoformat(timespec="seconds"),
+            "importado_de": Path(arquivo).name,
+            **parsed.model_dump(),
+        }
+        importados += 1
+        n_rel += len(parsed.relacoes)
+        n_dep += len(parsed.depoimentos)
+    write_jsonl(arq, existentes.values())
+    return {
+        "fonte": fonte_id,
+        "arquivo": str(arquivo),
+        "n_linhas": len(rows),
+        "n_importados": importados,
+        "n_relacoes": n_rel,
+        "n_depoimentos": n_dep,
+        "invalidos": invalidos,
+        "candidatos_desconhecidos": desconhecidos,
+        "trechos_nao_literais": sorted(set(nao_literais)),
+        "total_extraidos": len(existentes),
+    }
