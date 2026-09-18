@@ -1,5 +1,9 @@
+import pytest
+
 from gap.ingest.dedup import chave_relacao, encontrar_duplicata
+from gap.ingest.extract import CredencialAusente, ExtracaoInterrompida, credencial_disponivel, extrair_fonte
 from gap.ingest.lexicon import Gazetteer, Lexico, nomes_desconhecidos, normalizar
+from gap.store import read_jsonl, write_jsonl
 from gap.ingest.pdf_to_chunks import limpar_texto
 from gap.ingest.prefilter import prefiltrar
 from gap.ingest.resolve import Resolvedor, limpar_nome
@@ -64,6 +68,55 @@ def test_resolvedor(ds_repo):
     assert r.decisao == "novo" and r.id is None and r.id_provisorio == "joaquim-cardozo"
     assert res.resolver("Heitor Maia").id == "heitor-maia-neto"
     assert res.resolver("Waldecy Fernandes Pinto").id == "waldeci-pinto"
+
+
+def _candidatos_falsos(paths, n=5):
+    pasta = paths.work_fonte("afonso-2008")
+    pasta.mkdir(parents=True, exist_ok=True)
+    write_jsonl(pasta / "candidatos.jsonl", (
+        {"chunk_id": f"afonso-2008-p0001-b{i:03d}", "pagina": 1, "paragrafo": i, "texto": f"texto {i}", "contexto_anterior": "", "contexto_posterior": "",
+         "nomes_conhecidos": [], "nomes_desconhecidos": [], "gatilhos": [], "tipos_sugeridos": [], "eh_depoimento": False, "score": 1.0}
+        for i in range(1, n + 1)
+    ))
+    return pasta
+
+
+def test_extracao_sem_credencial_aborta_antes_de_chamar(repo_tmp, monkeypatch, tmp_path):
+    from gap.store import load_dataset
+
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    monkeypatch.setenv("ANTHROPIC_CONFIG_DIR", str(tmp_path / "sem-perfil"))
+    assert not credencial_disponivel()
+    pasta = _candidatos_falsos(repo_tmp)
+    with pytest.raises(CredencialAusente):
+        extrair_fonte(repo_tmp, load_dataset(repo_tmp), "afonso-2008")
+    assert not (pasta / "extraidos.jsonl").exists()
+
+
+def test_extracao_interrompe_apos_falhas_consecutivas(repo_tmp, monkeypatch):
+    from gap.ingest import extract as ex
+    from gap.store import load_dataset
+
+    pasta = _candidatos_falsos(repo_tmp)
+
+    def falha(*_a, **_k):
+        raise ValueError("resposta sem JSON")
+
+    monkeypatch.setattr(ex, "chamar_modelo", falha)
+    with pytest.raises(ExtracaoInterrompida):
+        ex.extrair_fonte(repo_tmp, load_dataset(repo_tmp), "afonso-2008", client=object())
+    linhas = read_jsonl(pasta / "extraidos.jsonl")
+    assert len(linhas) == ex.MAX_FALHAS_CONSECUTIVAS and all(l.get("erro") for l in linhas)
+
+    # erro de credencial no meio da execução não é persistido
+    def falha_auth(*_a, **_k):
+        raise TypeError("Could not resolve authentication method. Expected one of api_key, auth_token...")
+
+    monkeypatch.setattr(ex, "chamar_modelo", falha_auth)
+    with pytest.raises(CredencialAusente):
+        ex.extrair_fonte(repo_tmp, load_dataset(repo_tmp), "afonso-2008", client=object(), refazer=True)
+    assert len(read_jsonl(pasta / "extraidos.jsonl")) == ex.MAX_FALHAS_CONSECUTIVAS
 
 
 def test_dedup_chave_e_busca(ds_repo):

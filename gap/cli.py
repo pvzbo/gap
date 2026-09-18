@@ -188,14 +188,16 @@ def extract(paths: Paths, fonte: str, modelo: str, limite: int | None, ids: str 
         err = " ERRO: " + linha["erro"] if linha.get("erro") else ""
         click.echo(f"[{i}/{n}] {linha['candidato_id']} → {nr} relação(ões), {nd} depoimento(s){err}")
 
+    from .ingest.extract import CredencialAusente, ExtracaoInterrompida
+
     try:
         stats = extrair_fonte(paths, ds, fonte, modelo=modelo, limite=limite, ids=conj, refazer=refazer, dry_run=dry_run, progresso=prog)
-    except Exception as exc:  # noqa: BLE001
-        nome = type(exc).__name__
-        if "Authentication" in nome or "api_key" in str(exc).lower():
-            click.echo("Sem credencial da API Anthropic. Defina ANTHROPIC_API_KEY ou faça `ant auth login`. Use --dry-run para gerar os prompts sem chamar a API.")
-            sys.exit(2)
-        raise
+    except CredencialAusente as exc:
+        click.echo(f"ERRO: {exc}")
+        sys.exit(2)
+    except ExtracaoInterrompida as exc:
+        click.echo(f"ERRO: {exc}")
+        sys.exit(3)
     _echo_json(stats)
 
 
@@ -219,10 +221,15 @@ def queue(paths: Paths, fonte: str) -> None:
 def ingest(paths: Paths, fonte: str, com_extract: bool, modelo: str, limite: int | None) -> None:
     """Pipeline completo para uma fonte (ou caminho de PDF)."""
     from .ingest.dedup import montar_fila
-    from .ingest.extract import extrair_fonte
+    from .ingest.extract import CredencialAusente, ExtracaoInterrompida, credencial_disponivel, extrair_fonte
     from .ingest.pdf_to_chunks import processar_pdf
     from .ingest.prefilter import executar_prefiltro
 
+    if com_extract and not credencial_disponivel():
+        from .ingest.extract import MENSAGEM_CREDENCIAL
+
+        click.echo(f"ERRO: {MENSAGEM_CREDENCIAL}")
+        sys.exit(2)
     ds = load_dataset(paths)
     fid, pdf = _resolver_fonte(paths, ds, fonte)
     meta = processar_pdf(paths, fid, pdf)
@@ -230,7 +237,11 @@ def ingest(paths: Paths, fonte: str, com_extract: bool, modelo: str, limite: int
     stats = executar_prefiltro(paths, ds, fid)
     click.echo(f"[1] pré-filtro: {stats['n_candidatos']} candidatos ({(stats['taxa_descarte'] or 0) * 100:.1f}% descartados)")
     if com_extract:
-        st = extrair_fonte(paths, ds, fid, modelo=modelo, limite=limite)
+        try:
+            st = extrair_fonte(paths, ds, fid, modelo=modelo, limite=limite)
+        except (CredencialAusente, ExtracaoInterrompida) as exc:
+            click.echo(f"ERRO: {exc}")
+            sys.exit(2)
         click.echo(f"[2] extração: {st.get('n_processados')} candidatos → {st.get('n_relacoes')} relações, {st.get('n_depoimentos')} depoimentos, {st.get('n_erros')} erros")
         fila = montar_fila(paths, ds, fid)
         click.echo(f"[3-4] fila: {fila['n_itens']} itens ({fila['n_duplicatas']} duplicatas; resolução {fila['resolucao']})")

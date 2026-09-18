@@ -16,13 +16,56 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import os
 import re
+from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 from ..config import MODELO_EXTRACAO, Paths, TIPOS_RELACAO
 from ..store import Dataset, read_jsonl, write_jsonl
+
+
+class CredencialAusente(RuntimeError):
+    """Sem forma de autenticar na API Anthropic."""
+
+
+class ExtracaoInterrompida(RuntimeError):
+    """Falhas consecutivas: provável problema de rede, modelo ou cota — não de um chunk específico."""
+
+
+MENSAGEM_CREDENCIAL = (
+    "Sem credencial da API Anthropic. No PowerShell: setx ANTHROPIC_API_KEY \"sua-chave\" e abra um NOVO terminal "
+    "(ou, só para a sessão atual: $env:ANTHROPIC_API_KEY = \"sua-chave\"). Alternativa: `ant auth login`. "
+    "Use --dry-run para gerar os prompts sem chamar a API."
+)
+
+MAX_FALHAS_CONSECUTIVAS = 3
+
+
+def credencial_disponivel() -> bool:
+    """Verificação local (sem rede): variável de ambiente ou perfil do `ant auth login`."""
+    if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+        return True
+    perfil = Path(os.environ.get("ANTHROPIC_CONFIG_DIR") or (Path.home() / ".config" / "anthropic"))
+    try:
+        return perfil.is_dir() and any(perfil.iterdir())
+    except OSError:
+        return False
+
+
+def eh_erro_de_credencial(exc: BaseException) -> bool:
+    nome = type(exc).__name__.lower()
+    msg = str(exc).lower()
+    return (
+        "authentication" in nome
+        or "permissiondenied" in nome
+        or "authentication" in msg
+        or "api_key" in msg
+        or "api key" in msg
+        or "credential" in msg
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -195,7 +238,8 @@ def extrair_fonte(
     arq = pasta / "extraidos.jsonl"
     existentes = {r["candidato_id"]: r for r in read_jsonl(arq)}
     if not refazer and not ids:
-        candidatos = [c for c in candidatos if c["chunk_id"] not in existentes]
+        # linhas com `erro` contam como não extraídas: são refeitas por padrão
+        candidatos = [c for c in candidatos if c["chunk_id"] not in existentes or existentes[c["chunk_id"]].get("erro")]
     if limite is not None:
         candidatos = candidatos[:limite]
 
@@ -209,9 +253,13 @@ def extrair_fonte(
     if not candidatos:
         return {"fonte": fonte_id, "modelo": modelo, "n_processados": 0, "n_relacoes": 0, "n_depoimentos": 0, "n_erros": 0, "mensagem": "nada novo a extrair"}
 
+    if client is None and not credencial_disponivel():
+        raise CredencialAusente(MENSAGEM_CREDENCIAL)
     client = client or criar_cliente()
     n_rel = n_dep = n_err = 0
     tokens_in = tokens_out = 0
+    falhas_seguidas = 0
+    ultimo_erro: str | None = None
     for i, c in enumerate(candidatos, start=1):
         linha: dict[str, Any] = {
             "candidato_id": c["chunk_id"],
@@ -227,13 +275,24 @@ def extrair_fonte(
             n_dep += len(parsed.depoimentos)
             tokens_in += uso.get("input_tokens") or 0
             tokens_out += uso.get("output_tokens") or 0
-        except Exception as exc:  # noqa: BLE001 - registra e segue
-            linha.update({"relacoes": [], "depoimentos": [], "mencoes_sem_relacao": [], "observacao": None, "erro": f"{type(exc).__name__}: {exc}"})
+            falhas_seguidas = 0
+        except Exception as exc:  # noqa: BLE001
+            if eh_erro_de_credencial(exc):
+                # não persiste: nada foi extraído e o problema não é do chunk
+                raise CredencialAusente(f"{MENSAGEM_CREDENCIAL} (erro da API: {type(exc).__name__}: {exc})") from exc
+            ultimo_erro = f"{type(exc).__name__}: {exc}"
+            linha.update({"relacoes": [], "depoimentos": [], "mencoes_sem_relacao": [], "observacao": None, "erro": ultimo_erro})
             n_err += 1
+            falhas_seguidas += 1
         existentes[c["chunk_id"]] = linha
         write_jsonl(arq, existentes.values())  # grava a cada passo: retomável
         if progresso:
             progresso(i, len(candidatos), linha)
+        if falhas_seguidas >= MAX_FALHAS_CONSECUTIVAS:
+            raise ExtracaoInterrompida(
+                f"Extração interrompida após {falhas_seguidas} falhas consecutivas (rede, modelo ou cota?). "
+                f"Último erro: {ultimo_erro}. As linhas com erro serão refeitas na próxima execução."
+            )
 
     return {
         "fonte": fonte_id,

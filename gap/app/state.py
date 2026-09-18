@@ -25,6 +25,9 @@ def estado_fonte(paths: Paths, ds: Dataset, fonte: dict[str, Any]) -> dict[str, 
     meta = read_json(pasta / "meta.json") if (pasta / "meta.json").exists() else None
     stats = read_json(pasta / "prefiltro_stats.json") if (pasta / "prefiltro_stats.json").exists() else None
     n_fila = _n_linhas(pasta / "fila.jsonl")
+    extraidos = read_jsonl(pasta / "extraidos.jsonl") if (pasta / "extraidos.jsonl").exists() else None
+    n_extraidos = sum(1 for r in extraidos if not r.get("erro")) if extraidos is not None else None
+    n_erros_extracao = sum(1 for r in extraidos if r.get("erro")) if extraidos is not None else 0
     decisoes = read_jsonl(pasta / "decisoes.jsonl") if (pasta / "decisoes.jsonl").exists() else []
     decididos = {d.get("item_id") for d in decisoes if d.get("item_id")}
     pdf = paths.root / fonte["arquivo_local"] if fonte.get("arquivo_local") else None
@@ -44,7 +47,8 @@ def estado_fonte(paths: Paths, ds: Dataset, fonte: dict[str, Any]) -> dict[str, 
         "n_chunks": (meta or {}).get("n_chunks") if meta else _n_linhas(pasta / "chunks.jsonl"),
         "n_candidatos": (stats or {}).get("n_candidatos") if stats else _n_linhas(pasta / "candidatos.jsonl"),
         "taxa_descarte": (stats or {}).get("taxa_descarte"),
-        "n_extraidos": _n_linhas(pasta / "extraidos.jsonl"),
+        "n_extraidos": n_extraidos,
+        "n_erros_extracao": n_erros_extracao,
         "n_fila": n_fila,
         "n_decisoes": len(decisoes) if (pasta / "decisoes.jsonl").exists() else None,
         "n_pendentes": (n_fila - len(decididos)) if n_fila is not None else None,

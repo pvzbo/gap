@@ -54,7 +54,7 @@
           <td>{% if f.tem_pdf %}<span class="tag ok">sim</span>{% else %}<span class="tag off">não</span>{% endif %}</td>
           <td class="num">{{ f.n_chunks if f.n_chunks is not none else '—' }}</td>
           <td class="num">{{ f.n_candidatos if f.n_candidatos is not none else '—' }}{% if f.taxa_descarte %}<br><span class="sub">{{ (f.taxa_descarte*100)|round(0)|int }}% desc.</span>{% endif %}</td>
-          <td class="num">{{ f.n_extraidos if f.n_extraidos is not none else '—' }}</td>
+          <td class="num">{{ f.n_extraidos if f.n_extraidos is not none else '—' }}{% if f.n_erros_extracao %}<br><span class="tag d">{{ f.n_erros_extracao }} erro(s)</span>{% endif %}</td>
           <td class="num">{{ f.n_fila if f.n_fila is not none else '—' }}</td>
           <td class="num">{{ f.n_pendentes if f.n_pendentes is not none else '—' }}</td>
           <td class="num">{{ f.n_aceitos or 0 }}</td>

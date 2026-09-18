@@ -225,10 +225,11 @@ def api_pipeline(fonte_id: str, estagio: str, payload: dict[str, Any] = Body(def
     except (FileNotFoundError, KeyError) as exc:
         raise ErroTriagem(str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
-        nome = type(exc).__name__
-        if "Authentication" in nome or "api_key" in str(exc).lower():
-            raise ErroTriagem("Sem credencial da API Anthropic: defina ANTHROPIC_API_KEY (ou `ant auth login`) no terminal que roda `gap triage`.") from exc
-        raise ErroTriagem(f"{nome}: {exc}") from exc
+        from ..ingest.extract import CredencialAusente, ExtracaoInterrompida
+
+        if isinstance(exc, (CredencialAusente, ExtracaoInterrompida)):
+            raise ErroTriagem(f"{exc} — a variável precisa estar definida no terminal que roda `gap triage`.") from exc
+        raise ErroTriagem(f"{type(exc).__name__}: {exc}") from exc
     raise ErroTriagem(f"Estágio desconhecido: {estagio}")
 
 
