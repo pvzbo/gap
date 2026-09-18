@@ -203,34 +203,41 @@ def extract(paths: Paths, fonte: str, modelo: str, limite: int | None, ids: str 
 
 @main.command("export-candidatos")
 @click.argument("fonte")
-@click.option("--limite", type=int, default=None, help="Só os N primeiros candidatos em ordem de leitura.")
+@click.option("--limite", type=int, default=None, help="Só os N primeiros candidatos.")
 @click.option("--ids", default=None, help="Lista de chunk_ids separados por vírgula.")
+@click.option("--pendentes", is_flag=True, help="Só candidatos ainda sem extração (lotes sucessivos sem sobreposição).")
+@click.option("--ordem", type=click.Choice(["pagina", "score"]), default="pagina", show_default=True, help="Ordem de leitura ou mais densos primeiro.")
 @click.pass_obj
-def export_candidatos(paths: Paths, fonte: str, limite: int | None, ids: str | None) -> None:
+def export_candidatos(paths: Paths, fonte: str, limite: int | None, ids: str | None, pendentes: bool, ordem: str) -> None:
     """Sem chave de API: exporta os candidatos como caderno Markdown + prompts JSONL para leitura humana ou outro modelo."""
     from .ingest.extract import exportar_caderno
 
     ds = load_dataset(paths)
     conj = {s.strip() for s in ids.split(",") if s.strip()} if ids else None
-    st = exportar_caderno(paths, ds, fonte, limite=limite, ids=conj)
-    _echo_json(st)
-    click.echo("Preencha um JSONL no formato do exemplo e importe com: gap import-extraidos "
-               f"{fonte} <arquivo.jsonl>")
+    st = exportar_caderno(paths, ds, fonte, limite=limite, ids=conj, pendentes=pendentes, ordem=ordem)
+    _echo_json({k: v for k, v in st.items() if k != "ids"})
+    if st["n_candidatos"] == 0:
+        click.echo("Nenhum candidato pendente: a extração desta fonte está completa. Rode `gap queue` e depois `gap triage`.")
+        return
+    click.echo(f"Leia {st['caderno']} e escreva um JSONL no formato de {Path(st['exemplo']).name}; importe com: "
+               f"gap import-extraidos {fonte} <arquivo.jsonl> --modelo <quem-extraiu>")
 
 
 @main.command("import-extraidos")
 @click.argument("fonte")
 @click.argument("arquivo", type=click.Path(exists=True, path_type=Path))
-@click.option("--modelo", default="manual", show_default=True, help="Rótulo de quem produziu a extração (ex.: claude-code, leitura-paz).")
+@click.option("--modelo", default="manual", show_default=True, help="Rótulo de quem produziu a extração (ex.: claude-code-haiku, leitura-paz).")
+@click.option("--permitir-nao-literal", is_flag=True, help="Importar mesmo com trechos que não são cópia literal (a fila exibe alerta).")
 @click.pass_obj
-def import_extraidos(paths: Paths, fonte: str, arquivo: Path, modelo: str) -> None:
+def import_extraidos(paths: Paths, fonte: str, arquivo: Path, modelo: str, permitir_nao_literal: bool) -> None:
     """Valida e incorpora um JSONL de extrações produzido fora do pipeline; depois rode `gap queue`."""
     from .ingest.extract import importar_extraidos
 
-    st = importar_extraidos(paths, fonte, arquivo, modelo=modelo)
+    st = importar_extraidos(paths, fonte, arquivo, modelo=modelo, permitir_nao_literal=permitir_nao_literal)
     _echo_json(st)
     if st["invalidos"] or st["candidatos_desconhecidos"]:
-        click.echo("Linhas inválidas ou com candidato_id desconhecido foram ignoradas — corrija e importe de novo.")
+        click.echo(f"{len(st['invalidos'])} linha(s) inválida(s) e {len(st['candidatos_desconhecidos'])} candidato_id(s) desconhecido(s) foram ignorados — "
+                   "corrija essas linhas no arquivo e importe de novo (as linhas válidas já foram gravadas).")
         sys.exit(1)
 
 
@@ -375,11 +382,12 @@ def status(paths: Paths, fonte: str | None) -> None:
     linhas = estado_fontes(paths, ds)
     if fonte:
         linhas = [l for l in linhas if l["id"] == fonte]
-    click.echo(f"{'fonte':<36} {'pdf':>3} {'chunks':>7} {'cand.':>6} {'extr.':>6} {'fila':>5} {'decid.':>6} {'proc.':>5}")
+    click.echo(f"{'fonte':<36} {'pdf':>3} {'chunks':>7} {'cand.':>6} {'extr.':>6} {'pend.':>6} {'fila':>5} {'decid.':>6} {'proc.':>5}")
     for l in linhas:
         click.echo(
             f"{l['id']:<36} {'sim' if l['tem_pdf'] else '—':>3} {l['n_chunks'] if l['n_chunks'] is not None else '—':>7} "
             f"{l['n_candidatos'] if l['n_candidatos'] is not None else '—':>6} {l['n_extraidos'] if l['n_extraidos'] is not None else '—':>6} "
+            f"{l['n_extr_pendentes'] if l.get('n_extr_pendentes') is not None else '—':>6} "
             f"{l['n_fila'] if l['n_fila'] is not None else '—':>5} {l['n_decisoes'] if l['n_decisoes'] is not None else '—':>6} {'sim' if l['processado'] else '—':>5}"
         )
 

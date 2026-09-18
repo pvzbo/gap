@@ -366,6 +366,14 @@ importado com `gap import-extraidos <fonte> <arquivo>`. Candidatos sem relação
 """
 
 
+def candidatos_pendentes(paths: Paths, fonte_id: str) -> tuple[list[dict[str, Any]], int]:
+    """(candidatos ainda sem extração bem-sucedida, total de candidatos)."""
+    pasta = paths.work_fonte(fonte_id)
+    candidatos = read_jsonl(pasta / "candidatos.jsonl")
+    feitos = {r["candidato_id"] for r in read_jsonl(pasta / "extraidos.jsonl") if not r.get("erro")}
+    return [c for c in candidatos if c["chunk_id"] not in feitos], len(candidatos)
+
+
 def exportar_caderno(
     paths: Paths,
     ds: Dataset,
@@ -373,21 +381,39 @@ def exportar_caderno(
     *,
     limite: int | None = None,
     ids: set[str] | None = None,
+    pendentes: bool = False,
+    ordem: str = "pagina",
 ) -> dict[str, Any]:
-    """Exporta os candidatos como caderno Markdown (leitura humana ou qualquer modelo) e como prompts JSONL."""
+    """Exporta os candidatos como caderno Markdown (leitura humana ou qualquer modelo) e como prompts JSONL.
+
+    ``pendentes=True`` exclui candidatos já extraídos (lotes sucessivos sem sobreposição).
+    ``ordem``: "pagina" (ordem de leitura) ou "score" (mais densos primeiro).
+    """
     pasta = paths.work_fonte(fonte_id)
-    candidatos = read_jsonl(pasta / "candidatos.jsonl")
-    if not candidatos:
+    todos = read_jsonl(pasta / "candidatos.jsonl")
+    if not todos:
         raise FileNotFoundError(f"Sem candidatos para '{fonte_id}'. Rode `gap prefilter {fonte_id}` primeiro.")
     fonte = ds.fontes_por_id.get(fonte_id, {"id": fonte_id})
-    candidatos.sort(key=lambda c: (c.get("pagina") or 0, c.get("paragrafo") or 0))
+    candidatos = todos
+    if pendentes:
+        candidatos, _ = candidatos_pendentes(paths, fonte_id)
+    if ordem == "score":
+        candidatos.sort(key=lambda c: (-float(c.get("score") or 0), c.get("pagina") or 0, c.get("paragrafo") or 0))
+    else:
+        candidatos.sort(key=lambda c: (c.get("pagina") or 0, c.get("paragrafo") or 0))
     if ids:
         candidatos = [c for c in candidatos if c["chunk_id"] in ids]
+    n_pendentes_total = len(candidatos_pendentes(paths, fonte_id)[0])
     if limite is not None:
         candidatos = candidatos[:limite]
 
     ref = f"{fonte.get('autor') or ''} — {fonte.get('titulo') or fonte_id} ({fonte.get('ano') or 's.d.'})".strip(" —")
-    md: list[str] = [f"# Caderno de candidatos — {fonte_id}", "", ref, "", f"{len(candidatos)} parágrafo(s) candidato(s). Gerado em {_dt.datetime.now().isoformat(timespec='seconds')}.", "", INSTRUCOES_CADERNO, "---", ""]
+    md: list[str] = [
+        f"# Caderno de candidatos — {fonte_id}", "", ref, "",
+        f"{len(candidatos)} parágrafo(s) neste caderno · {n_pendentes_total} pendente(s) de {len(todos)} candidato(s) na fonte. "
+        f"Gerado em {_dt.datetime.now().isoformat(timespec='seconds')}.",
+        "", INSTRUCOES_CADERNO, "---", "",
+    ]
     for c in candidatos:
         nomes = sorted({n.get("variante", "") for n in c.get("nomes_conhecidos") or []} | set(c.get("nomes_desconhecidos") or []))
         md.append(f"## {c['chunk_id']} · p. {c.get('pagina')}")
@@ -409,11 +435,32 @@ def exportar_caderno(
     write_jsonl(prompts, ({"candidato_id": c["chunk_id"], "system": SYSTEM_PROMPT, "user": montar_mensagem(c, fonte)} for c in candidatos))
     exemplo = pasta / "extraidos_exemplo.jsonl"
     write_jsonl(exemplo, [EXEMPLO_LINHA])
-    return {"fonte": fonte_id, "n_candidatos": len(candidatos), "caderno": str(caderno), "prompts": str(prompts), "exemplo": str(exemplo)}
+    return {
+        "fonte": fonte_id,
+        "n_candidatos": len(candidatos),
+        "n_pendentes_na_fonte": n_pendentes_total,
+        "n_total_na_fonte": len(todos),
+        "ids": [c["chunk_id"] for c in candidatos],
+        "caderno": str(caderno),
+        "prompts": str(prompts),
+        "exemplo": str(exemplo),
+    }
 
 
-def importar_extraidos(paths: Paths, fonte_id: str, arquivo: Path, *, modelo: str = "manual") -> dict[str, Any]:
-    """Valida e incorpora um JSONL de extrações produzido fora do pipeline (humano, Claude Code, outro modelo)."""
+def importar_extraidos(
+    paths: Paths,
+    fonte_id: str,
+    arquivo: Path,
+    *,
+    modelo: str = "manual",
+    permitir_nao_literal: bool = False,
+) -> dict[str, Any]:
+    """Valida e incorpora um JSONL de extrações produzido fora do pipeline (humano, Claude Code, outro modelo).
+
+    Por padrão, linhas com algum `trecho` que não seja cópia literal do parágrafo-alvo são
+    REJEITADAS (o autor corrige e importa de novo). ``permitir_nao_literal=True`` importa
+    mesmo assim; a fila de triagem exibe o alerta.
+    """
     from pydantic import ValidationError
 
     pasta = paths.work_fonte(fonte_id)
@@ -438,9 +485,13 @@ def importar_extraidos(paths: Paths, fonte_id: str, arquivo: Path, *, modelo: st
             e = exc.errors()[0]
             invalidos.append({"candidato_id": cid, "erro": f"{'.'.join(str(x) for x in e.get('loc', ()))}: {e.get('msg')}"})
             continue
-        for r in parsed.relacoes:
-            if not trecho_e_literal(r.trecho, candidatos[cid]["texto"]):
-                nao_literais.append(cid)
+        ruins = [r.trecho for r in parsed.relacoes if not trecho_e_literal(r.trecho, candidatos[cid]["texto"])]
+        ruins += [d.trecho for d in parsed.depoimentos if d.trecho and not trecho_e_literal(d.trecho, candidatos[cid]["texto"])]
+        if ruins:
+            nao_literais.append(cid)
+            if not permitir_nao_literal:
+                invalidos.append({"candidato_id": cid, "erro": "trecho não literal (copie uma frase exata do parágrafo-alvo): " + " | ".join(f"“{t[:80]}”" for t in ruins)})
+                continue
         existentes[cid] = {
             "candidato_id": cid,
             "pagina": candidatos[cid].get("pagina"),
@@ -453,6 +504,7 @@ def importar_extraidos(paths: Paths, fonte_id: str, arquivo: Path, *, modelo: st
         n_rel += len(parsed.relacoes)
         n_dep += len(parsed.depoimentos)
     write_jsonl(arq, existentes.values())
+    feitos = {cid for cid, r in existentes.items() if not r.get("erro")}
     return {
         "fonte": fonte_id,
         "arquivo": str(arquivo),
@@ -463,5 +515,6 @@ def importar_extraidos(paths: Paths, fonte_id: str, arquivo: Path, *, modelo: st
         "invalidos": invalidos,
         "candidatos_desconhecidos": desconhecidos,
         "trechos_nao_literais": sorted(set(nao_literais)),
-        "total_extraidos": len(existentes),
+        "total_extraidos": len(feitos),
+        "pendentes_restantes": len([c for c in candidatos if c not in feitos]),
     }

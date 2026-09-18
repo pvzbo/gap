@@ -49,6 +49,9 @@ def estado_fonte(paths: Paths, ds: Dataset, fonte: dict[str, Any]) -> dict[str, 
         "taxa_descarte": (stats or {}).get("taxa_descarte"),
         "n_extraidos": n_extraidos,
         "n_erros_extracao": n_erros_extracao,
+        "n_extr_pendentes": (
+            ((stats or {}).get("n_candidatos") if stats else _n_linhas(pasta / "candidatos.jsonl")) or 0
+        ) - (n_extraidos or 0) if (pasta / "candidatos.jsonl").exists() else None,
         "n_fila": n_fila,
         "n_decisoes": len(decisoes) if (pasta / "decisoes.jsonl").exists() else None,
         "n_pendentes": (n_fila - len(decididos)) if n_fila is not None else None,

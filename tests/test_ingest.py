@@ -169,9 +169,23 @@ def test_exportar_e_importar_extraidos(repo_tmp, ds_repo):
     st = importar_extraidos(repo_tmp, "afonso-2008", resposta, modelo="teste")
     assert st["n_importados"] == 1 and st["n_relacoes"] == 1
     assert len(st["invalidos"]) == 1 and st["candidatos_desconhecidos"] == ["inexistente"]
-    assert st["trechos_nao_literais"] == []
+    assert st["trechos_nao_literais"] == [] and st["pendentes_restantes"] == 0
     linhas = read_jsonl(pasta / "extraidos.jsonl")
     assert linhas[0]["modelo"] == "teste" and linhas[0]["importado_de"] == "resposta.jsonl"
+
+    # caderno só de pendentes fica vazio depois da importação
+    st2 = exportar_caderno(repo_tmp, load_dataset(repo_tmp), "afonso-2008", pendentes=True)
+    assert st2["n_candidatos"] == 0 and st2["n_pendentes_na_fonte"] == 0
+
+    # trecho parafraseado é rejeitado por padrão e aceito com permitir_nao_literal
+    parafrase = repo_tmp.root / "parafrase.jsonl"
+    linha = {"candidato_id": "afonso-2008-p0004-b002", "relacoes": [{"origem_nome": "Mario Russo", "destino_nome": "Mauricio Castro", "tipo": "mestre-aprendiz", "simetrico": False,
+                                                                     "descricao": "x", "confianca_sugerida": "documentado", "trecho": "Russo convidou Castro para o ETCUR", "justificativa": "z"}]}
+    write_jsonl(parafrase, [linha])
+    st3 = importar_extraidos(repo_tmp, "afonso-2008", parafrase, modelo="teste")
+    assert st3["n_importados"] == 0 and "trecho não literal" in st3["invalidos"][0]["erro"]
+    st4 = importar_extraidos(repo_tmp, "afonso-2008", parafrase, modelo="teste", permitir_nao_literal=True)
+    assert st4["n_importados"] == 1 and st4["trechos_nao_literais"] == ["afonso-2008-p0004-b002"]
 
 
 def test_dedup_chave_e_busca(ds_repo):

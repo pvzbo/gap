@@ -30,8 +30,12 @@ Use `python -m gap` (o executável `gap` pode não estar no PATH no Windows). Ca
 - Site: `site/js/app.js` lê `site/data/grafo.json` (gerado)
 - Gold standard: `tests/gold/afonso-2008/relacoes_gold.jsonl`
 
-## Extração com Claude
-Modelo padrão `claude-haiku-4-5`; escalonamento `claude-sonnet-5`. Prompt conservador em `gap/ingest/extract.py` (co-menção não é relação; `trecho` literal obrigatório). Saída estruturada via `client.messages.parse(..., output_format=ExtracaoChunk)`. Exige `ANTHROPIC_API_KEY` ou perfil `ant auth login`.
+## Extração com Claude (estágio 2)
+Dois caminhos, mesma saída (`work/<fonte>/extraidos.jsonl`), mesma triagem depois:
+- **API** (`gap extract`): modelo padrão `claude-haiku-4-5`; escalonamento `claude-sonnet-5`. Prompt conservador em `gap/ingest/extract.py`. Saída estruturada via `client.messages.parse(..., output_format=ExtracaoChunk)`. Exige `ANTHROPIC_API_KEY` ou perfil `ant auth login`; sem credencial aborta antes de chamar.
+- **Assistida, sem chave** (`/extrair <fonte>` — comando em `.claude/commands/extrair.md`): a própria sessão do Claude Code lê `work/<fonte>/caderno.md` em lotes de ~20 (`gap export-candidatos <fonte> --pendentes --ordem score --limite 20`), escreve o JSONL e importa com `gap import-extraidos` (rejeita `trecho` não literal). Regras completas no comando. Use `python -m gap status` para ver `pend.` por fonte.
+
+Ordem sugerida das fontes locais: `porto-2021` (em andamento), `silva-2020`, `lamour-filho-2023`, `feitosa-2023`, `reynaldo-2013`, depois as demais de `data/fontes.jsonl` com PDF.
 
 ## Decisões abertas (perguntar ao Paz quando bloquearem)
 Ver GAP_BRIEF §12: figuras estrangeiras como nós; 8º tipo `equipe-institucional`; branch por fonte vs. main; app interno e site como um ou dois códigos; identidade visual própria.
