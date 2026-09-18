@@ -518,3 +518,54 @@ def importar_extraidos(
         "total_extraidos": len(feitos),
         "pendentes_restantes": len([c for c in candidatos if c not in feitos]),
     }
+
+
+# --------------------------------------------------------------------------- #
+# Persistência versionada das propostas (extracoes/<fonte>/extraidos.jsonl)
+# --------------------------------------------------------------------------- #
+
+CAMPOS_PUBLICAVEIS = ("candidato_id", "pagina", "modelo", "extraido_em", "importado_de", "relacoes", "depoimentos", "mencoes_sem_relacao", "observacao", "uso")
+
+
+def salvar_extracao(paths: Paths, fonte_id: str) -> dict[str, Any]:
+    """Copia work/<fonte>/extraidos.jsonl (sem linhas com erro) para extracoes/<fonte>/extraidos.jsonl.
+
+    O arquivo versionado contém só propostas: nomes, tipo, trecho literal curto, descrição e
+    observações — nunca o texto integral dos parágrafos (que fica em work/, ignorado pelo Git).
+    """
+    origem = paths.work_fonte(fonte_id) / "extraidos.jsonl"
+    rows = [r for r in read_jsonl(origem) if not r.get("erro")]
+    if not rows:
+        raise FileNotFoundError(f"Nada a salvar: {origem} não existe ou só tem linhas com erro.")
+    rows.sort(key=lambda r: r["candidato_id"])
+    destino = paths.extracao_fonte(fonte_id)
+    write_jsonl(destino, ({k: r.get(k) for k in CAMPOS_PUBLICAVEIS if k in r} for r in rows))
+    return {
+        "fonte": fonte_id,
+        "destino": str(destino),
+        "n_candidatos": len(rows),
+        "n_relacoes": sum(len(r.get("relacoes") or []) for r in rows),
+        "n_depoimentos": sum(len(r.get("depoimentos") or []) for r in rows),
+        "modelos": sorted({str(r.get("modelo")) for r in rows}),
+    }
+
+
+def restaurar_extracao(paths: Paths, fonte_id: str, *, sobrescrever: bool = False) -> dict[str, Any]:
+    """Traz extracoes/<fonte>/extraidos.jsonl para work/<fonte>/ (outra máquina, checkout limpo).
+
+    Por padrão preserva o que já existe em work/ e só acrescenta candidatos ausentes.
+    """
+    origem = paths.extracao_fonte(fonte_id)
+    rows = read_jsonl(origem)
+    if not rows:
+        raise FileNotFoundError(f"Sem extração versionada em {origem}.")
+    destino = paths.work_fonte(fonte_id) / "extraidos.jsonl"
+    atuais = {r["candidato_id"]: r for r in read_jsonl(destino)}
+    novos = 0
+    for r in rows:
+        if sobrescrever or r["candidato_id"] not in atuais or atuais[r["candidato_id"]].get("erro"):
+            if r["candidato_id"] not in atuais:
+                novos += 1
+            atuais[r["candidato_id"]] = r
+    write_jsonl(destino, atuais.values())
+    return {"fonte": fonte_id, "destino": str(destino), "n_no_repo": len(rows), "n_acrescentados": novos, "total_em_work": len(atuais)}

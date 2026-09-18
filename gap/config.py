@@ -94,6 +94,14 @@ class Paths:
     def tests(self) -> Path:
         return self.root / "tests"
 
+    # versionado: propostas de extração pré-triagem (só trechos curtos), por fonte
+    @property
+    def extracoes(self) -> Path:
+        return self.root / "extracoes"
+
+    def extracao_fonte(self, fonte_id: str) -> Path:
+        return self.extracoes / fonte_id / "extraidos.jsonl"
+
     def work_fonte(self, fonte_id: str) -> Path:
         return self.work / fonte_id
 

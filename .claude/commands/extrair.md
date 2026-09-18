@@ -41,10 +41,11 @@ Direção: em `mestre-aprendiz` e `estudo` a ORIGEM ensina e o DESTINO aprende; 
 3. Para cada `## <candidato_id>` do caderno, aplique as regras e escreva uma linha no arquivo `work/<fonte>/extraidos_<modelo>_lote<N>.jsonl` (ex.: `extraidos_claude-haiku_lote3.jsonl`). Copie os `trecho` caractere a caractere do parágrafo em negrito, incluindo erros de OCR.
 4. `python -m gap import-extraidos <fonte> <arquivo> --modelo <modelo>` (ex.: `--modelo claude-haiku-4-5`). Se a saída listar `invalidos` (esquema ou "trecho não literal") ou `candidatos_desconhecidos`, corrija **só essas linhas** no arquivo e importe de novo; as válidas já foram gravadas.
 5. `python -m gap queue <fonte>` — monta/atualiza a fila de triagem.
-6. Volte ao passo 2 com o lote seguinte.
+6. `python -m gap salvar-extracao <fonte>` — versiona as propostas em `extracoes/<fonte>/extraidos.jsonl` (só trechos curtos). Faça `git add extracoes/<fonte>` e um commit por lote (mensagem: `extração(<fonte>): lote N, <modelo>`); não faça push sem o Paz pedir.
+7. Volte ao passo 2 com o lote seguinte.
 
 ## Ao terminar
 
 Relatório curto para o Paz: lotes feitos; candidatos processados / pendentes; relações e depoimentos propostos; pessoas novas mais frequentes (nomes que não existem na base); pistas registradas em `observacao` (nomes completos, datas, decisões de recorte); lembre que a revisão é dele: `python -m gap triage --fonte <fonte>`.
 
-Não edite `data/*.jsonl` nem `data/vocabularios/*` diretamente. Não faça `git commit` de nada em `work/` (é ignorado). Não use a API Anthropic (`gap extract`) a menos que `ANTHROPIC_API_KEY` esteja definida e o Paz tenha pedido.
+Não edite `data/*.jsonl` nem `data/vocabularios/*` diretamente. `work/` é ignorado pelo Git (contém o texto integral das fontes); só `extracoes/` é versionado. Não use a API Anthropic (`gap extract`) a menos que `ANTHROPIC_API_KEY` esteja definida e o Paz tenha pedido.

@@ -10,7 +10,7 @@ Leia `GAP_BRIEF.md` antes de qualquer alteração: é a fonte única de decisõe
 - Nomes de instituições em `atuacao`/`formacao` devem existir em `data/vocabularios/instituicoes.yaml`.
 - Relações (linhas) ≠ arestas (pares únicos). Não confundir nas contagens.
 - Novo tipo de relação só quando um `subtipo` recorrer 3+ vezes (GAP_BRIEF §2).
-- `raw_pdfs/`, `work/`, `export/`, `site/data/` não são versionados.
+- `raw_pdfs/`, `work/`, `export/`, `site/data/` não são versionados. `extracoes/<fonte>/extraidos.jsonl` é versionado: propostas pré-triagem com trechos curtos (`gap salvar-extracao` / `gap restaurar-extracao`).
 
 ## Comandos úteis
 ```

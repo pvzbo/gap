@@ -55,7 +55,7 @@ A única etapa que precisa de um modelo é a extração (estágio 2); chunks, pr
 2. **Claude Code** (a assinatura que você já usa). `python -m gap export-candidatos porto-2021` gera `work/porto-2021/caderno.md` (parágrafos candidatos com contexto e instruções) e `extraidos_exemplo.jsonl` (formato da resposta). Peça ao Claude Code para ler o caderno e escrever um JSONL seguindo o exemplo; depois `python -m gap import-extraidos porto-2021 <arquivo.jsonl> --modelo claude-code` valida (esquema, `candidato_id`, trecho literal) e `python -m gap queue porto-2021` monta a fila. O mesmo `prompts.jsonl` serve para qualquer outro modelo.
 3. **Leitura humana.** O caderno também serve para anotação manual: preencha o JSONL à mão ou use a entrada manual da triagem, que grava direto na base com fonte, página e trecho.
 
-Em todos os casos a proposta passa pela mesma triagem: nada entra na base sem revisão.
+Em todos os casos a proposta passa pela mesma triagem: nada entra na base sem revisão. `python -m gap salvar-extracao <fonte>` versiona as propostas em `extracoes/<fonte>/`; em outra máquina, `python -m gap restaurar-extracao <fonte>` as devolve a `work/`.
 
 ### Triagem
 
@@ -68,6 +68,7 @@ data/                    fonte da verdade (JSONL + YAML)
 gap/                     pacote Python (config, store, gitutil, validate/, ingest/, analysis/, app/, cli.py)
 site/                    site público estático (index.html, css/, js/; data/ é gerado)
 export/                  gerado por `gap build`: grafo.json, pessoas.csv, relacoes.csv, metricas.{json,md}, grafo.{gexf,graphml}, pendencias.md
+extracoes/               propostas de extração por fonte, pré-triagem (versionadas; só trechos curtos)
 tests/                   pytest + tests/gold/afonso-2008/ (gold standard)
 prototypes/              protótipos da fase de desenho (referência; não construir sobre eles)
 raw_pdfs/, work/         corpus local e intermediários (ignorados pelo Git)
@@ -89,7 +90,7 @@ raw_pdfs/, work/         corpus local e intermediários (ignorados pelo Git)
 
 ## Segurança e dados pessoais
 
-- O repositório é público e não contém segredos: a chave da API Anthropic vive só na variável de ambiente `ANTHROPIC_API_KEY` da máquina de quem extrai; `raw_pdfs/` e `work/` (textos integrais, extrações brutas) nunca são versionados.
+- O repositório é público e não contém segredos: a chave da API Anthropic vive só na variável de ambiente `ANTHROPIC_API_KEY` da máquina de quem extrai; `raw_pdfs/` e `work/` (textos integrais) nunca são versionados; `extracoes/` guarda só as propostas de relação com trechos literais curtos, sem o texto dos parágrafos.
 - A base registra apenas **informação profissional publicada** sobre pessoas (formação, atuação, sociedades, parentescos citados em fontes acadêmicas), sempre com fonte, página e trecho curto. Não se registram dados de contato, documentos, saúde ou opinião política. Pedidos de correção ou remoção de pessoas vivas devem ser abertos como *issue* neste repositório e são atendidos pelo editor.
 - A aplicação interna (`gap triage`) não tem autenticação e escreve na base: rode-a apenas em `127.0.0.1` (padrão). Nunca a exponha na rede.
 - O site público é estático e não coleta dados; carrega D3 do cdnjs (com hash de integridade) e fontes do Google Fonts.

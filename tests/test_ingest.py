@@ -195,3 +195,20 @@ def test_dedup_chave_e_busca(ds_repo):
     assert d and d["id"] == "rel-0020"
     assert encontrar_duplicata(ds_repo, "mauricio-castro", "mario-russo", "estudo", False) is None
     assert encontrar_duplicata(ds_repo, "mario-russo", "mauricio-castro", "estudo", False)["id"] == "rel-0001"
+
+
+def test_salvar_e_restaurar_extracao(repo_tmp):
+    from gap.ingest.extract import restaurar_extracao, salvar_extracao
+
+    pasta = repo_tmp.work_fonte("afonso-2008")
+    pasta.mkdir(parents=True, exist_ok=True)
+    write_jsonl(pasta / "extraidos.jsonl", [
+        {"candidato_id": "afonso-2008-p0002-b001", "pagina": 2, "modelo": "teste", "relacoes": [], "depoimentos": [], "mencoes_sem_relacao": [], "observacao": None},
+        {"candidato_id": "afonso-2008-p0001-b001", "pagina": 1, "modelo": "teste", "relacoes": [], "depoimentos": [], "mencoes_sem_relacao": [], "observacao": None, "erro": "falhou"},
+    ])
+    st = salvar_extracao(repo_tmp, "afonso-2008")
+    assert st["n_candidatos"] == 1 and repo_tmp.extracao_fonte("afonso-2008").exists()
+    (pasta / "extraidos.jsonl").unlink()
+    st2 = restaurar_extracao(repo_tmp, "afonso-2008")
+    assert st2["n_acrescentados"] == 1 and st2["total_em_work"] == 1
+    assert read_jsonl(pasta / "extraidos.jsonl")[0]["candidato_id"] == "afonso-2008-p0002-b001"

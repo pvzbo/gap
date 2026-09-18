@@ -241,6 +241,28 @@ def import_extraidos(paths: Paths, fonte: str, arquivo: Path, modelo: str, permi
         sys.exit(1)
 
 
+@main.command("salvar-extracao")
+@click.argument("fonte")
+@click.pass_obj
+def salvar_extracao_cmd(paths: Paths, fonte: str) -> None:
+    """Versiona as propostas de extração em extracoes/<fonte>/ (só trechos curtos; work/ continua fora do Git)."""
+    from .ingest.extract import salvar_extracao
+
+    _echo_json(salvar_extracao(paths, fonte))
+    click.echo(f"Agora: git add extracoes/{fonte} && git commit")
+
+
+@main.command("restaurar-extracao")
+@click.argument("fonte")
+@click.option("--sobrescrever", is_flag=True, help="Substituir linhas já existentes em work/ pelas do repositório.")
+@click.pass_obj
+def restaurar_extracao_cmd(paths: Paths, fonte: str, sobrescrever: bool) -> None:
+    """Traz extracoes/<fonte>/ para work/<fonte>/ (nova máquina ou checkout limpo); depois rode `gap queue`."""
+    from .ingest.extract import restaurar_extracao
+
+    _echo_json(restaurar_extracao(paths, fonte, sobrescrever=sobrescrever))
+
+
 @main.command()
 @click.argument("fonte")
 @click.pass_obj
