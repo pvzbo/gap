@@ -8,44 +8,10 @@ para commitar em ``triage/<fonte-id>`` (fluxo de pull request, GAP_BRIEF §12).
 from __future__ import annotations
 
 import os
-import shutil
 from pathlib import Path
 from typing import Iterable
 
-_CANDIDATOS_GIT = (
-    r"C:\Program Files\Git\cmd\git.exe",
-    r"C:\Program Files (x86)\Git\cmd\git.exe",
-    os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Git", "cmd", "git.exe"),
-    "/usr/bin/git",
-    "/usr/local/bin/git",
-    "/opt/homebrew/bin/git",
-)
-
-
-def localizar_git() -> str | None:
-    """Caminho do executável git, mesmo quando a instalação ainda não entrou no PATH do processo."""
-    env = os.environ.get("GIT_PYTHON_GIT_EXECUTABLE")
-    if env and Path(env).exists():
-        return env
-    achado = shutil.which("git")
-    if achado:
-        return achado
-    for c in _CANDIDATOS_GIT:
-        if c and Path(c).exists():
-            os.environ["GIT_PYTHON_GIT_EXECUTABLE"] = c
-            return c
-    return None
-
-
-def repo_disponivel(root: Path):
-    if localizar_git() is None:
-        return None
-    try:
-        import git  # type: ignore
-
-        return git.Repo(root, search_parent_directories=False)
-    except Exception:  # noqa: BLE001 - ImportError, InvalidGitRepositoryError, GitCommandNotFound...
-        return None
+from ..gitutil import localizar_git, repo_disponivel  # noqa: F401 - reexportados para a app
 
 
 def commit(root: Path, mensagem: str, arquivos: Iterable[Path], fonte_id: str | None = None) -> str | None:

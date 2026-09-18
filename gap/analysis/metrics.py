@@ -434,15 +434,9 @@ def cobertura(ds: Dataset, G: nx.Graph, paths: Paths | None = None) -> dict[str,
 # --------------------------------------------------------------------------- #
 
 def commit_atual(root) -> str | None:
-    try:
-        from ..app.git_ops import repo_disponivel
+    from ..gitutil import commit_atual as _commit_atual
 
-        repo = repo_disponivel(Path(root))
-        if repo is None or not repo.head.is_valid():
-            return None
-        return repo.head.commit.hexsha[:12]
-    except Exception:  # noqa: BLE001 - qualquer falha = sem git
-        return None
+    return _commit_atual(Path(root))
 
 
 def relatorio(ds: Dataset, paths: Paths | None = None, relacoes: list[dict[str, Any]] | None = None) -> dict[str, Any]:
