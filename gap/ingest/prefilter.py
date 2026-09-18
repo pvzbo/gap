@@ -63,6 +63,7 @@ def prefiltrar(
     n_nome_sem_gatilho = 0
     n_gatilho_sem_nome = 0
     n_bibliografia = 0
+    n_dupla_sem_gatilho = 0
     freq_gatilhos: Counter[str] = Counter()
     freq_pessoas: Counter[str] = Counter()
     por_pagina: Counter[int] = Counter()
@@ -82,14 +83,21 @@ def prefiltrar(
         dep = any(g.grupo == "depoimento" for g in gat)
         tem_gatilho = bool(gat_relacionais)
 
-        if tem_nome and not tem_gatilho and not dep:
+        ids_conhecidos = {n.pessoa_id for n in conhecidos}
+        # Enumerações do tipo "X com Y, Z com W" não têm verbo relacional: duas pessoas
+        # conhecidas no mesmo parágrafo bastam para virar candidato (recall primeiro).
+        dupla_conhecida = len(ids_conhecidos) >= 2
+
+        if tem_nome and not tem_gatilho and not dep and not dupla_conhecida:
             n_nome_sem_gatilho += 1
         if tem_gatilho and not tem_nome:
             n_gatilho_sem_nome += 1
 
-        passa = (tem_nome and tem_gatilho) or (dep and conhecidos)
+        passa = (tem_nome and tem_gatilho) or (dep and conhecidos) or dupla_conhecida
         if not passa:
             continue
+        if dupla_conhecida and not tem_gatilho:
+            n_dupla_sem_gatilho += 1
 
         for g in gat:
             freq_gatilhos[f"{g.grupo}:{g.termo}"] += 1
@@ -99,7 +107,6 @@ def prefiltrar(
 
         ant = " ".join(chunks[j]["texto"] for j in range(max(0, i - janela_contexto), i))
         pos = " ".join(chunks[j]["texto"] for j in range(i + 1, min(len(chunks), i + 1 + janela_contexto)))
-        ids_conhecidos = {n.pessoa_id for n in conhecidos}
         score = 2.0 * len(ids_conhecidos) + 1.0 * len(desconhecidos) + 0.5 * len(gat_relacionais)
         if len(ids_conhecidos) >= 2:
             score += 2.0
@@ -128,6 +135,7 @@ def prefiltrar(
         "n_com_nome_sem_gatilho": n_nome_sem_gatilho,
         "n_com_gatilho_sem_nome": n_gatilho_sem_nome,
         "n_bibliografia_descartados": n_bibliografia,
+        "n_dupla_conhecida_sem_gatilho": n_dupla_sem_gatilho,
         "n_depoimentos_suspeitos": sum(1 for c in candidatos if c.eh_depoimento),
         "gatilhos_mais_frequentes": freq_gatilhos.most_common(25),
         "pessoas_mais_citadas": freq_pessoas.most_common(25),

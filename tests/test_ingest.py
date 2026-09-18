@@ -53,6 +53,14 @@ def test_prefiltro_exige_nome_e_gatilho(ds_repo, paths_repo):
     assert stats["n_com_nome_sem_gatilho"] == 1 and stats["n_com_gatilho_sem_nome"] == 1
 
 
+def test_prefiltro_aceita_dupla_de_conhecidos_sem_gatilho(ds_repo, paths_repo):
+    gaz = Gazetteer.do_dataset(ds_repo)
+    lex = Lexico.carregar(paths_repo.lexico)
+    chunks = [{"chunk_id": "t-p0001-b001", "pagina": 1, "paragrafo": 1, "texto": "Reginaldo Esteves com Maurício Castro, Marcos Domingues com Carlos Correia Lima."}]
+    cands, stats = prefiltrar(chunks, gaz, lex)
+    assert len(cands) == 1 and stats["n_dupla_conhecida_sem_gatilho"] == 1
+
+
 def test_limpar_nome():
     assert limpar_nome("o arquiteto Reginaldo Esteves,") == "Reginaldo Esteves"
     assert limpar_nome("professor italiano Mario Russo") == "Mario Russo"
