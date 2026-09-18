@@ -47,16 +47,6 @@ python -m gap status                         # estado do funil por fonte
 
 `gap ingest <fonte|arquivo.pdf> [--extract]` encadeia os estágios. Todos os intermediários ficam em `work/<fonte-id>/` (não versionado). A extração usa Claude Haiku 4.5 por padrão; escalone casos ambíguos com `--modelo claude-sonnet-5 --ids <chunk_id,...>`. `--dry-run` grava os prompts sem chamar a API.
 
-### Sem chave de API: extração assistida
-
-A única etapa que precisa de um modelo é a extração (estágio 2); chunks, pré-filtro, resolução de entidades, triagem, análise e site rodam localmente e de graça. Três caminhos para o estágio 2:
-
-1. **Chave de API** (pagamento por uso). Em `console.anthropic.com` → *API Keys* → *Create Key*; carregue créditos em *Billing*. Com Haiku 4.5, uma tese (≈300 candidatos após o pré-filtro) custa menos de US$ 1. Guarde a chave no Windows com `setx ANTHROPIC_API_KEY "sua-chave"` e abra um novo terminal.
-2. **Claude Code** (a assinatura que você já usa). `python -m gap export-candidatos porto-2021` gera `work/porto-2021/caderno.md` (parágrafos candidatos com contexto e instruções) e `extraidos_exemplo.jsonl` (formato da resposta). Peça ao Claude Code para ler o caderno e escrever um JSONL seguindo o exemplo; depois `python -m gap import-extraidos porto-2021 <arquivo.jsonl> --modelo claude-code` valida (esquema, `candidato_id`, trecho literal) e `python -m gap queue porto-2021` monta a fila. O mesmo `prompts.jsonl` serve para qualquer outro modelo.
-3. **Leitura humana.** O caderno também serve para anotação manual: preencha o JSONL à mão ou use a entrada manual da triagem, que grava direto na base com fonte, página e trecho.
-
-Em todos os casos a proposta passa pela mesma triagem: nada entra na base sem revisão. `python -m gap salvar-extracao <fonte>` versiona as propostas em `extracoes/<fonte>/`; em outra máquina, `python -m gap restaurar-extracao <fonte>` as devolve a `work/`.
-
 ### Triagem
 
 Atalhos: **A** aceitar · **D** descartar · **S** adiar · **Z** desfazer · **1–7** tipo · **X** trocar origem/destino. Cada aceite grava em `data/relacoes.jsonl` (ou anexa a fonte a uma relação já existente do mesmo par e tipo), aprende variantes de nome em `aliases.yaml`, registra a decisão em `work/<fonte>/decisoes.jsonl` e, com Git disponível, faz um commit. A entrada manual (relação que o leitor infere e a máquina não) e a criação de pessoas ficam na coluna direita. Defina `GAP_GIT_BRANCH_POR_FONTE=1` para commitar em `triage/<fonte>` em vez do branch atual.
@@ -90,11 +80,7 @@ raw_pdfs/, work/         corpus local e intermediários (ignorados pelo Git)
 
 ## Segurança e dados pessoais
 
-- O repositório é público e não contém segredos: a chave da API Anthropic vive só na variável de ambiente `ANTHROPIC_API_KEY` da máquina de quem extrai; `raw_pdfs/` e `work/` (textos integrais) nunca são versionados; `extracoes/` guarda só as propostas de relação com trechos literais curtos, sem o texto dos parágrafos.
 - A base registra apenas **informação profissional publicada** sobre pessoas (formação, atuação, sociedades, parentescos citados em fontes acadêmicas), sempre com fonte, página e trecho curto. Não se registram dados de contato, documentos, saúde ou opinião política. Pedidos de correção ou remoção de pessoas vivas devem ser abertos como *issue* neste repositório e são atendidos pelo editor.
-- A aplicação interna (`gap triage`) não tem autenticação e escreve na base: rode-a apenas em `127.0.0.1` (padrão). Nunca a exponha na rede.
-- O site público é estático e não coleta dados; carrega D3 do cdnjs (com hash de integridade) e fontes do Google Fonts.
-- O fluxo de CI usa apenas permissões mínimas por job (leitura do código; escrita só no deploy do Pages) e nenhum segredo.
 
 ## Estado
 
