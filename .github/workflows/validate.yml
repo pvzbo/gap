@@ -1,0 +1,47 @@
+name: validar-e-publicar
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e . pytest httpx
+      - name: Regras de integridade (GAP_BRIEF §3.5)
+        run: python -m gap validate
+      - name: Testes
+        run: python -m pytest -q
+      - name: Build (grafo, métricas, exportações, site/data)
+        run: python -m gap build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: export
+          path: export/
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          path: site/
+
+  publicar:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

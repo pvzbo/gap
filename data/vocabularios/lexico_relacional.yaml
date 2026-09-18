@@ -1,0 +1,173 @@
+# Léxico de gatilhos relacionais em português (GAP_BRIEF §5, estágio 1).
+#
+# Cada padrão é uma expressão regular aplicada ao texto NORMALIZADO
+# (minúsculas, sem acentos). Um parágrafo só vira candidato se contiver
+# ao menos um nome de pessoa E ao menos um gatilho desta lista.
+#
+# `tipo_sugerido` é apenas uma dica para pré-preencher a triagem;
+# a decisão final é sempre humana. Ajuste para RECALL: falso positivo é
+# barato (descartado na triagem), relação perdida é cara.
+
+heranca:
+  tipo_sugerido: heranca
+  padroes:
+    - "\\bfilh[oa]s? d[eoa]s?\\b"
+    - "\\birm[aã][oa]s? d[eoa]s?\\b"
+    - "\\bcasad[oa]s? com\\b"
+    - "\\bcasou-se com\\b"
+    - "\\bcasal\\b"
+    - "\\b(esposa|esposo|marido|mulher) d[eo]\\b"
+    - "\\bsua (esposa|mulher)\\b"
+    - "\\bseu (marido|esposo)\\b"
+    - "\\bprim[oa]s?\\b"
+    - "\\bsobrinh[oa]s? d[eoa]\\b"
+    - "\\bnet[oa]s? d[eoa]\\b"
+    - "\\b(pai|mae) d[eoa]\\b"
+    - "\\bcunhad[oa]s?\\b"
+    - "\\bgenro\\b"
+    - "\\bnora\\b"
+    - "\\bparent(e|esco)\\b"
+    - "\\bfamilia\\b"
+
+mestre-aprendiz:
+  tipo_sugerido: mestre-aprendiz
+  padroes:
+    - "\\bestagi(ou|ario|aria|o)\\b"
+    - "\\bsob (a )?orientacao d[eoa]\\b"
+    - "\\borientac(ao|oes) (profissiona(l|is) )?d[eoa]\\b"
+    - "\\borientad[oa] por\\b"
+    - "\\bdiscipul[oa]s?\\b"
+    - "\\baprendiz\\b"
+    - "\\bconvidad[oa] por\\b"
+    - "\\bmestre\\b"
+    - "\\bseu (mestre|orientador)\\b"
+    - "\\bsua (mestra|orientadora)\\b"
+    - "\\bformou-se com\\b"
+    - "\\bcomecou a trabalhar com\\b"
+    - "\\bprimeiro (trabalho|emprego)\\b"
+    - "\\bassistente d[eoa]\\b"
+    - "\\bauxiliar d[eoa]\\b"
+
+estudo:
+  tipo_sugerido: estudo
+  padroes:
+    - "\\b(foi|fora|sendo|havendo sido|tendo sido) alun[oa]s? d[eoa]\\b"
+    - "\\balun[oa]s? d[eoa]\\b"
+    - "\\bex-alun[oa]s?\\b"
+    - "\\bprofessor(a|es|as)? d[eoa]\\b"
+    - "\\bseus? professor(es)?\\b"
+    - "\\bsuas? professoras?\\b"
+    - "\\bseus? mestres?\\b"
+    - "\\bestudou (com|na|no|sob)\\b"
+    - "\\bcursou\\b"
+    - "\\bcursar arquitetura\\b"
+    - "\\bcurso de arquitetura\\b"
+    - "\\bdiplomou-se\\b"
+    - "\\bformou-se\\b"
+    - "\\bgraduou-se\\b"
+    - "\\bturma d[eo]\\b"
+    - "\\bcolegas? de (turma|faculdade|curso|classe)\\b"
+    - "\\blecion(ou|ava|a)\\b"
+    - "\\bensin(ou|ava)\\b"
+    - "\\bcadeira d[eo]\\b"
+    - "\\bdisciplina d[eo]\\b"
+    - "\\bteve (aulas|como professor)\\b"
+
+trabalho:
+  tipo_sugerido: trabalho
+  padroes:
+    - "\\btrabalh(ou|ava|aram|avam|ando) (com|para|no|na|junto)\\b"
+    - "\\bescritorio d[eoa]\\b"
+    - "\\bequipe (de|do|da|coordenada|chefiada|liderada)\\b"
+    - "\\bintegr(ou|ava|aram) a equipe\\b"
+    - "\\bcolabor(ou|ador|adora|adores|acao)\\b"
+    - "\\bfuncionari[oa]\\b"
+    - "\\bcontratad[oa] (por|pelo|pela)\\b"
+    - "\\bchefi(ou|ava|ado|ada)\\b"
+    - "\\bcoorden(ou|ava|ad[oa]) (por|pelo|pela)\\b"
+    - "\\bdirigid[oa] por\\b"
+    - "\\bsob (a )?(direcao|chefia|coordenacao) d[eoa]\\b"
+    - "\\bempreg(ou|ado|ada)\\b"
+    - "\\bdesenhista\\b"
+    - "\\bestagiario\\b"
+
+societario:
+  tipo_sugerido: societario
+  padroes:
+    - "\\bsoci[oa]s?\\b"
+    - "\\bassoci(ou|aram|ando)-se\\b"
+    - "\\bse associ(ou|aram|ando)\\b"
+    - "\\bsociedade\\b"
+    - "\\bem sociedade com\\b"
+    - "\\bfund(ou|aram) (com|junto|o escritorio|a firma)\\b"
+    - "\\bfundador(es|a|as)?\\b"
+    - "\\b(firma|empresa|escritorio) [a-z&. -]{2,40}(&| e ) [a-z. -]{2,40}\\b"
+    - "\\bparceria\\b"
+    - "\\bem parceria com\\b"
+    - "\\bparceir[oa]s?\\b"
+    - "\\bescritorio (proprio|conjunto|comum)\\b"
+    - "\\babriu (um )?escritorio\\b"
+    - "\\bmont(ou|aram) (um )?escritorio\\b"
+
+dissidencia:
+  tipo_sugerido: dissidencia
+  padroes:
+    - "\\bromp(eu|eram|imento|endo)\\b"
+    - "\\bruptura\\b"
+    - "\\bdeix(ou|aram) o escritorio\\b"
+    - "\\bafast(ou|aram)-se\\b"
+    - "\\bdeslig(ou|aram)-se\\b"
+    - "\\bsepar(ou|aram)-se\\b"
+    - "\\bdissol(veu|vida|ucao)\\b"
+    - "\\bcisao\\b"
+    - "\\bdiverg(encia|iu|iram)\\b"
+    - "\\bdesentendimento\\b"
+    - "\\bsaiu d[oa] (escritorio|sociedade|firma)\\b"
+    - "\\bconflito\\b"
+    - "\\bcritic(ou|ava) (o|a|seu|sua)\\b"
+
+coautoria-pontual:
+  tipo_sugerido: coautoria-pontual
+  padroes:
+    - "\\bprojet(ou|aram|ado|ada) (junto|juntos|em conjunto|com)\\b"
+    - "\\bcoautor(ia|es|a)?\\b"
+    - "\\bco-autor(ia|es|a)?\\b"
+    - "\\bem coautoria\\b"
+    - "\\bconcurso\\b"
+    - "\\bequipe vencedora\\b"
+    - "\\bvencedor(es|a)? d[oe]\\b"
+    - "\\bem conjunto com\\b"
+    - "\\bjuntamente com\\b"
+    - "\\bcom a colaboracao d[eoa]\\b"
+    - "\\bprojeto (de autoria|assinado) (de|por)\\b"
+    - "\\bautoria d[eoa]\\b"
+    - "\\bjunto (com|a|ao)\\b"
+
+institucional:
+  # Coparticipação institucional (diretorias, corpo docente, congressos).
+  # Ainda não é um tipo de relação; recorre e é candidato a 8º tipo (GAP_BRIEF §12).
+  tipo_sugerido: trabalho
+  padroes:
+    - "\\bdiretoria\\b"
+    - "\\bpresidente d[oa] (iab|instituto)\\b"
+    - "\\bconselho\\b"
+    - "\\bcongresso\\b"
+    - "\\bseminario\\b"
+    - "\\bcorpo docente\\b"
+    - "\\bdocentes?\\b"
+    - "\\bmembros? fundador(es)?\\b"
+    - "\\bcomissao\\b"
+    - "\\bjuri\\b"
+
+depoimento:
+  # Sinaliza posição sobre a "Escola do Recife" — vai para depoimentos, não para relacoes.
+  tipo_sugerido: null
+  padroes:
+    - "\\bescola (do|de) recife\\b"
+    - "\\bescola pernambucana\\b"
+    - "\\bescola regional\\b"
+    - "\\bexist(iu|e|ia|encia de) (uma |tal )?['\"]?escola\\b"
+    - "\\bindagad[oa] sobre\\b"
+    - "\\bem depoimento\\b"
+    - "\\bafirm(ou|a) que\\b"
+    - "\\bneg(ou|a) (que|a existencia)\\b"

@@ -1,0 +1,26 @@
+# Variantes de nome → id canônico em pessoas.jsonl.
+#
+# Chave: id da pessoa. Valor: lista de variantes textuais encontradas nas fontes.
+# O sistema aprende: quando a triagem confirma uma variante, ela é acrescentada aqui.
+# Variantes de um único token (ex.: "Russo") são usadas pelo pré-filtro e pela
+# resolução de entidades, mas NUNCA resolvem automaticamente — sempre passam
+# pela fila humana (GAP_BRIEF §5, estágio 3).
+
+luiz-nunes: [Luís Nunes, Luiz Nunes]
+mario-russo: [Mário Russo, Mario Russo, Russo]
+acacio-gil-borsoi: [Acácio Gil Borsoi, Acacio Gil Borsoi, Acácio Borsoi, Borsoi]
+delfim-amorim: [Delfim Amorim, Delfim Fernandes Amorim, Amorim]
+heitor-maia-neto: [Heitor Maia Neto, Heitor Maia]
+mauricio-castro: [Mauricio do Passo Castro, Maurício do Passo Castro, Mauricio Castro, Maurício Castro, Castro]
+reginaldo-esteves: [Reginaldo Luiz Esteves, Reginaldo Esteves, Esteves]
+marcos-domingues: [Marcos Domingues, Domingues]
+carlos-correia-lima: [Carlos Correia Lima, Correia Lima]
+edison-lima: [Edison Rodrigues de Lima, Edison Lima, Édison Lima]
+waldeci-pinto: [Waldeci Fernandes Pinto, Waldeci Pinto, Waldecy Pinto, Valdecy Pinto]
+augusto-reynaldo: [Augusto Reynaldo, Augusto Reinaldo]
+helio-coelho-correia: [Hélio Coelho Correia, Hélio Coelho Corrêa]
+arlindo-pontual: [Arlindo Pontual]
+airton-carvalho: [Airton Carvalho, Ayrton Carvalho, Airton de Carvalho, Ayrton de Carvalho]
+vital-pessoa-melo: [Vital Pessoa de Melo, Vital Pessoa de Mello, Vital Melo]
+didier-dnocs: [Didier]
+helio-maia: [Hélio Maia]

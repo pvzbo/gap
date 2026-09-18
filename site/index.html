@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genealogia da Arquitetura Pernambucana</title>
+<meta name="description" content="Rede documentada de arquitetos, urbanistas, professores e engenheiros que fizeram a arquitetura de Pernambuco no século XX. Cada vínculo tem fonte, página e trecho.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<header>
+  <h1><a href="#rede">Genealogia da Arquitetura Pernambucana</a></h1>
+  <span class="sub" id="subtitulo">carregando…</span>
+  <nav>
+    <a href="#rede" data-view="rede">Rede</a>
+    <a href="#metricas" data-view="metricas">Métricas</a>
+    <a href="#sobre" data-view="sobre">Sobre</a>
+  </nav>
+</header>
+
+<main id="main">
+  <aside id="controles">
+    <div class="block">
+      <h2>Buscar pessoa</h2>
+      <input id="busca" list="nomes" placeholder="nome ou variante…" autocomplete="off">
+      <datalist id="nomes"></datalist>
+      <select id="seletor" style="margin-top:8px"><option value="">— visão geral da rede —</option></select>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="ghost" id="limpar">Limpar foco</button>
+        <button class="ghost" id="reorganizar">Reorganizar</button>
+      </div>
+    </div>
+    <div class="block">
+      <h2>Tipos de relação</h2>
+      <div id="filtros"></div>
+    </div>
+    <div class="block">
+      <h2>Camadas de evidência</h2>
+      <label class="chk"><input type="checkbox" id="chkHip" checked><span>Mostrar relações hipotéticas</span></label>
+      <label class="chk"><input type="checkbox" id="chkRotulos" checked><span>Rótulos de todos os nós</span></label>
+    </div>
+    <div class="block">
+      <h2>Agrupar por instituição</h2>
+      <select id="instituicao"><option value="">— nenhuma —</option></select>
+      <div class="nota" id="instNota"></div>
+    </div>
+    <div class="block">
+      <h2>Papel historiográfico</h2>
+      <div id="legendaPapeis"></div>
+      <div class="nota">Nós isolados (sem vínculo documentado) aparecem com contorno tracejado: a lacuna é um resultado, não um defeito.</div>
+    </div>
+    <div class="block">
+      <h2>Métricas da rede visível</h2>
+      <div id="metricasMini"></div>
+    </div>
+  </aside>
+
+  <section id="canvasWrap">
+    <svg id="graph" role="img" aria-label="Grafo de relações entre pessoas"></svg>
+    <div id="tip"></div>
+    <div class="hint">Clique num nó para focalizar · passe o mouse numa aresta para ver a fonte · arraste · scroll para zoom</div>
+  </section>
+
+  <aside id="painelPessoa" class="fechado">
+    <button class="ghost fechar" id="fecharPainel" aria-label="Fechar painel">×</button>
+    <div id="pessoaConteudo"></div>
+  </aside>
+
+  <section id="viewMetricas" class="oculto"></section>
+  <section id="viewSobre" class="oculto"></section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

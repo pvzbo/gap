@@ -1,0 +1,30 @@
+# Corpus local e intermediários de processamento (nunca versionados)
+raw_pdfs/
+work/
+
+# Saídas regeneradas por `gap build`
+export/
+site/data/
+
+# Pasta de amostras da fase de desenho (cópia versionada em prototypes/)
+.md_samples/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Segredos
+.env
+
+# Sistema
+Thumbs.db
+.DS_Store
+
+# Configuração local do Claude Code
+.claude/settings.local.json

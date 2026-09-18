@@ -1,0 +1,148 @@
+# Vocabulário controlado de instituições, escritórios, órgãos e empresas.
+#
+# O campo `id` é o valor que deve aparecer em pessoas.jsonl
+# (atuacao[].nome e formacao[].instituicao). É o que torna o agrupamento
+# por metadado confiável ("quem deu aula na EBAP", "quem trabalhou no ETCUR").
+#
+# tipo: escola | universidade | orgao_publico | escritorio | empresa | associacao | imprensa | laboratorio
+# aliases: variantes textuais usadas pelo pré-filtro e pela resolução de entidades.
+
+- id: EBAP
+  nome: Escola de Belas Artes de Pernambuco
+  tipo: escola
+  cidade: Recife
+  periodo: "1932-"
+  notas: Curso de arquitetura criado em 1945 e reconhecido em 1949; posteriormente incorporado à UFPE.
+  aliases: [Escola de Belas Artes de Pernambuco, Escola de Belas Artes, EBA, EBAP, Escola de Belas Artes do Recife]
+
+- id: UFPE
+  nome: Universidade Federal de Pernambuco
+  tipo: universidade
+  cidade: Recife
+  periodo: "1946-"
+  notas: Até 1965, Universidade do Recife.
+  aliases: [Universidade Federal de Pernambuco, Universidade do Recife, UFPE, FAU-UFPE, Faculdade de Arquitetura da UFPE, MDU, PPGDU, CAC/UFPE]
+
+- id: ENBA
+  nome: Escola Nacional de Belas Artes
+  tipo: escola
+  cidade: Rio de Janeiro
+  periodo: null
+  aliases: [Escola Nacional de Belas Artes, ENBA]
+
+- id: DAC/PE
+  nome: Diretoria de Arquitetura e Construção do Estado de Pernambuco
+  tipo: orgao_publico
+  cidade: Recife
+  periodo: "1934-1937"
+  notas: Órgão dirigido por Luiz Nunes; núcleo da primeira geração moderna.
+  aliases: [Diretoria de Arquitetura e Construção, Diretoria de Arquitetura e Urbanismo, DAC, DAC/PE, DAU]
+
+- id: ETCUR
+  nome: Escritório Técnico da Cidade Universitária do Recife
+  tipo: orgao_publico
+  cidade: Recife
+  periodo: null
+  notas: Coordenado por Mario Russo.
+  aliases: [Escritório Técnico da Cidade Universitária, Escritório Técnico da Cidade Universitária de Recife, ETCUR, Cidade Universitária]
+
+- id: IAB/PE
+  nome: Instituto de Arquitetos do Brasil — Departamento de Pernambuco
+  tipo: associacao
+  cidade: Recife
+  periodo: null
+  aliases: [Instituto de Arquitetos do Brasil, IAB, IAB/PE, IAB-PE]
+
+- id: CREA-PE
+  nome: Conselho Regional de Engenharia e Agronomia de Pernambuco
+  tipo: orgao_publico
+  cidade: Recife
+  periodo: null
+  aliases: [CREA, CREA-PE, CREA/PE]
+
+- id: DNOCS
+  nome: Departamento Nacional de Obras Contra as Secas
+  tipo: orgao_publico
+  cidade: null
+  periodo: null
+  aliases: [Departamento Nacional de Obras Contra as Secas, DNOCS]
+
+- id: IEP
+  nome: Instituto de Educação de Pernambuco
+  tipo: orgao_publico
+  cidade: Recife
+  periodo: null
+  aliases: [Instituto de Educação de Pernambuco, IEP]
+
+- id: CELPE
+  nome: Companhia Energética de Pernambuco
+  tipo: empresa
+  cidade: Recife
+  periodo: null
+  aliases: [CELPE, Companhia Energética de Pernambuco]
+
+- id: castro-esteves
+  nome: Castro & Esteves
+  tipo: escritorio
+  cidade: Recife
+  periodo: "1964-"
+  notas: Sociedade de Mauricio Castro e Reginaldo Esteves.
+  aliases: [Castro & Esteves, Castro e Esteves]
+
+- id: julio-maranhao
+  nome: Construtora Júlio Maranhão
+  tipo: empresa
+  cidade: Recife
+  periodo: null
+  aliases: [Júlio Maranhão, Julio Maranhão, empresa Júlio Maranhão, construtora Júlio Maranhão]
+
+- id: jeronimo-pontual
+  nome: Jerônimo & Pontual
+  tipo: escritorio
+  cidade: Recife
+  periodo: "1970-1997"
+  aliases: [Jerônimo & Pontual, Jerônimo e Pontual, Jeronimo & Pontual]
+
+- id: borsoi-associados
+  nome: Borsoi Associados
+  tipo: escritorio
+  cidade: Recife
+  periodo: null
+  aliases: [Borsoi Associados, Borsoi Arquitetos Associados]
+
+- id: arquitetura-4
+  nome: Arquitetura 4
+  tipo: escritorio
+  cidade: Recife
+  periodo: null
+  notas: Escritório feminino; acervo no LIAU/UFPE.
+  aliases: [Arquitetura 4, Arquitetura Quatro]
+
+- id: FAU-USP
+  nome: Faculdade de Arquitetura e Urbanismo da Universidade de São Paulo
+  tipo: universidade
+  cidade: São Paulo
+  periodo: null
+  aliases: [FAU-USP, FAUUSP, FAU USP, Faculdade de Arquitetura e Urbanismo da USP]
+
+- id: UNICAP
+  nome: Universidade Católica de Pernambuco
+  tipo: universidade
+  cidade: Recife
+  periodo: null
+  aliases: [Universidade Católica de Pernambuco, UNICAP]
+
+- id: folha-da-manha
+  nome: Folha da Manhã
+  tipo: imprensa
+  cidade: Recife
+  periodo: null
+  notas: Página dominical de arquitetura mantida pelo IAB/PE nos anos 1950.
+  aliases: [Folha da Manhã, jornal Folha da Manhã]
+
+- id: LIAU/UFPE
+  nome: Laboratório da Imagem de Arquitetura e Urbanismo
+  tipo: laboratorio
+  cidade: Recife
+  periodo: null
+  aliases: [LIAU, LIAU/UFPE, Laboratório da Imagem de Arquitetura e Urbanismo]

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triagem de relações — Genealogia da Arquitetura Pernambucana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#E8E4DA; --panel:#F2EFE8; --ink:#14161A; --graphite:#6B6E73;
+  --hairline:#C4BFB4; --blue:#22527A; --rust:#9C3B1B; --moss:#4A6B4F;
+  --plum:#6B2D5C; --teal:#2F6D6A; --ochre:#7A6420;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ground);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+header{border-bottom:1px solid var(--hairline);padding:13px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:var(--panel)}
+h1{font-size:14px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.mono{font-family:'Space Mono',monospace}
+.sub{font-family:'Space Mono',monospace;font-size:11px;color:var(--graphite)}
+.progresso{flex:1;min-width:160px;height:4px;background:var(--hairline);border-radius:2px;overflow:hidden;max-width:340px}
+.progresso i{display:block;height:100%;background:var(--ink);width:0;transition:width .25s}
+.placar{font-family:'Space Mono',monospace;font-size:11px;display:flex;gap:14px}
+.placar b{font-weight:700}
+.aceito{color:var(--moss)} .descartado{color:var(--rust)} .adiado{color:var(--ochre)}
+
+main{max-width:1180px;margin:0 auto;padding:22px;display:grid;grid-template-columns:1.35fr 1fr;gap:22px;align-items:start}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+
+.cartao{background:var(--panel);border:1px solid var(--hairline);border-radius:3px}
+.cartao-topo{padding:11px 16px;border-bottom:1px solid var(--hairline);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.fonte{font-family:'Space Mono',monospace;font-size:10.5px;color:var(--graphite);letter-spacing:.03em}
+.indice{font-family:'Space Mono',monospace;font-size:10.5px;color:var(--graphite)}
+.corpo{padding:16px}
+
+.trecho{font-size:14.5px;line-height:1.72;color:#33363B}
+.trecho mark{background:rgba(34,82,122,.16);color:var(--ink);padding:1px 0;box-decoration-break:clone}
+.trecho .nome{border-bottom:1.5px solid var(--rust);font-weight:500;color:var(--ink)}
+.ctx{color:var(--graphite);font-size:13px}
+
+.alerta{border-left:3px solid var(--ochre);background:rgba(122,100,32,.09);padding:9px 12px;margin:14px 0;font-size:12.5px;line-height:1.45}
+.alerta b{font-weight:600}
+.alerta.dup{border-color:var(--teal);background:rgba(47,109,106,.1)}
+
+h2.sec{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--graphite);margin-bottom:11px}
+.campos{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.campo{display:flex;flex-direction:column;gap:4px}
+.campo.wide{grid-column:1/-1}
+.campo label{font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--graphite)}
+select,input,textarea{font-family:'Archivo',sans-serif;font-size:13.5px;padding:7px 9px;background:#fff;border:1px solid var(--hairline);border-radius:2px;color:var(--ink);width:100%}
+textarea{resize:vertical;min-height:52px;line-height:1.45}
+select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.seta{display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:16px;color:var(--graphite);padding-top:16px}
+
+.acoes{display:flex;gap:9px;padding:14px 16px;border-top:1px solid var(--hairline);flex-wrap:wrap;align-items:center}
+button{font-family:'Archivo',sans-serif;font-size:13px;font-weight:500;padding:8px 15px;border-radius:2px;border:1px solid var(--hairline);background:#fff;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:7px}
+button:hover{border-color:var(--ink)}
+button.primaria{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+button.primaria:hover{background:#000}
+button.perigo:hover{border-color:var(--rust);color:var(--rust)}
+kbd{font-family:'Space Mono',monospace;font-size:9.5px;padding:1.5px 4px;border:1px solid currentColor;border-radius:2px;opacity:.5}
+.espaco{flex:1}
+
+.lateral .cartao{margin-bottom:16px}
+.lista{list-style:none;font-size:13px;max-height:290px;overflow-y:auto}
+.lista li{padding:8px 0;border-bottom:1px solid rgba(196,191,180,.55);display:flex;gap:9px;align-items:baseline}
+.lista li:last-child{border-bottom:none}
+.tag{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.06em;padding:2px 5px;border-radius:2px;flex:0 0 auto;text-transform:uppercase}
+.tag.a{background:rgba(74,107,79,.18);color:var(--moss)}
+.tag.d{background:rgba(156,59,27,.15);color:var(--rust)}
+.tag.s{background:rgba(122,100,32,.16);color:var(--ochre)}
+.vazio{color:var(--graphite);font-size:12.5px;padding:6px 0}
+pre.saida{font-family:'Space Mono',monospace;font-size:10.5px;line-height:1.6;background:#fff;border:1px solid var(--hairline);border-radius:2px;padding:11px;max-height:250px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.fim{text-align:center;padding:40px 20px}
+.fim h3{font-size:19px;font-weight:600;margin-bottom:7px}
+.fim p{color:var(--graphite);font-size:13.5px;margin-bottom:18px}
+.atalhos{font-family:'Space Mono',monospace;font-size:10px;color:var(--graphite);line-height:1.7}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Triagem de relações</h1>
+  <span class="sub" id="lote">lote: Afonso (2006) · 12 candidatos</span>
+  <div class="progresso"><i id="barra"></i></div>
+  <div class="placar">
+    <span class="aceito">aceitos <b id="nA">0</b></span>
+    <span class="descartado">descartados <b id="nD">0</b></span>
+    <span class="adiado">adiados <b id="nS">0</b></span>
+  </div>
+</header>
+
+<main id="palco">
+  <div>
+    <div class="cartao" id="cartao">
+      <div class="cartao-topo">
+        <span class="fonte" id="fonte"></span>
+        <span class="indice" id="indice"></span>
+      </div>
+      <div class="corpo">
+        <h2 class="sec">Trecho localizado</h2>
+        <div class="trecho" id="trecho"></div>
+        <div id="alertas"></div>
+        <h2 class="sec" style="margin-top:20px">Relação proposta</h2>
+        <div class="campos">
+          <div class="campo">
+            <label>Origem</label>
+            <select id="fOrigem"></select>
+          </div>
+          <div class="campo">
+            <label>Destino</label>
+            <select id="fDestino"></select>
+          </div>
+          <div class="campo">
+            <label>Tipo de relação</label>
+            <select id="fTipo"></select>
+          </div>
+          <div class="campo">
+            <label>Confiança da evidência</label>
+            <select id="fConf">
+              <option value="documentado">documentado</option>
+              <option value="tradicao_oral">tradição oral</option>
+              <option value="hipotese">hipótese</option>
+            </select>
+          </div>
+          <div class="campo wide">
+            <label>Descrição / contexto</label>
+            <textarea id="fDesc"></textarea>
+          </div>
+          <div class="campo wide">
+            <label>Pendência a resolver (opcional)</label>
+            <input id="fPend" placeholder="ex.: confirmar sobrenome em outra fonte">
+          </div>
+        </div>
+      </div>
+      <div class="acoes">
+        <button class="primaria" id="bAceitar">Aceitar <kbd>A</kbd></button>
+        <button id="bAdiar">Adiar <kbd>S</kbd></button>
+        <button class="perigo" id="bDescartar">Descartar <kbd>D</kbd></button>
+        <span class="espaco"></span>
+        <button id="bDesfazer">Desfazer <kbd>Z</kbd></button>
+      </div>
+    </div>
+    <div class="atalhos" style="margin-top:11px">
+      A aceitar · D descartar · S adiar · Z desfazer · 1–7 definir tipo de relação
+    </div>
+  </div>
+
+  <div class="lateral">
+    <div class="cartao">
+      <div class="cartao-topo"><span class="fonte">Decisões desta sessão</span></div>
+      <div class="corpo"><ul class="lista" id="historico"><li class="vazio">Nenhuma decisão ainda.</li></ul></div>
+    </div>
+    <div class="cartao">
+      <div class="cartao-topo">
+        <span class="fonte">Saída em JSONL</span>
+        <button id="bCopiar" style="padding:4px 9px;font-size:11.5px">Copiar</button>
+      </div>
+      <div class="corpo"><pre class="saida" id="saida">// as relações aceitas aparecem aqui</pre></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const TIPOS = ['heranca','mestre-aprendiz','estudo','trabalho','societario','dissidencia','coautoria-pontual'];
+const TIPO_ROT = {heranca:'hereditariedade',['mestre-aprendiz']:'mestre-aprendiz',estudo:'estudo',trabalho:'trabalho',societario:'societário',dissidencia:'dissidência',['coautoria-pontual']:'coautoria pontual'};
+
+const BASE = [
+ ['luiz-nunes','Luiz Nunes'],['mario-russo','Mario Russo'],['acacio-gil-borsoi','Acácio Gil Borsoi'],
+ ['delfim-amorim','Delfim Amorim'],['heitor-maia-neto','Heitor Maia Neto'],['mauricio-castro','Mauricio Castro'],
+ ['everaldo-gadelha','Everaldo Gadelha'],['reginaldo-esteves','Reginaldo Esteves'],['marcos-domingues','Marcos Domingues'],
+ ['carlos-correia-lima','Carlos Correia Lima'],['edison-lima','Edison Lima'],['waldeci-pinto','Waldeci Pinto'],
+ ['paulo-vaz','Paulo Vaz'],['augusto-reynaldo','Augusto Reynaldo'],['helio-coelho-correia','Hélio Coelho Correia'],
+ ['arlindo-pontual','Arlindo Pontual'],['airton-carvalho','Airton Carvalho'],['emerson-pinheiro','Emerson Pinheiro'],
+ ['eduardo-burle-ferreira','Eduardo Burle Ferreira'],['vital-pessoa-melo','Vital Pessoa de Melo'],
+ ['renato-torres','Renato Torres'],['helio-maia','Hélio Maia'],['didier-dnocs','Didier [?]']
+];
+
+// Candidatos extraídos do texto de Alcília Afonso (2006), incluindo casos-limite propositais
+const FILA = [
+ {
+  pag:'p. 4', ctxA:'Mauricio do Passo Castro nasceu em Recife em 1930 e começou a cursar arquitetura em 1949.',
+  frase:'Ainda estudante foi convidado por <span class="nome">Mario Russo</span> para trabalhar no Escritório Técnico da Cidade Universitária de Recife/ ETCUR, mantendo uma estreita relação com seu professor italiano.',
+  ctxB:'Construiu uma sólida amizade pessoal e profissional, mantida mesmo após a volta de Russo para Nápoles.',
+  o:'mario-russo', d:'mauricio-castro', t:'mestre-aprendiz', c:'documentado',
+  desc:'Convidado por Russo, ainda estudante, para integrar o ETCUR.'
+ },
+ {
+  pag:'p. 6', ctxA:'Esteves estudou arquitetura no período de 1950 a 1954 na EBAP.',
+  frase:'Havendo sido aluno de <span class="nome">Russo</span> e posteriormente de <span class="nome">Acácio Gil Borsoi</span>, dizendo em seu depoimento que a todos os seus colegas encantava o traço do arquiteto carioca.',
+  ctxB:'Mas que didaticamente foi o professor italiano quem mais marcou.',
+  o:'mario-russo', d:'reginaldo-esteves', t:'estudo', c:'documentado',
+  desc:'Aluno na EBAP entre 1950 e 1954.',
+  alerta:{tipo:'entidade', txt:'O texto usa apenas <b>“Russo”</b>. Casamento automático com <b>Mario Russo</b> por variante conhecida. Confirme antes de aceitar.'},
+  extra:'Este trecho contém uma segunda relação (Borsoi → Esteves), enfileirada separadamente.'
+ },
+ {
+  pag:'p. 6', ctxA:'Quando jovem foi morar em Recife.',
+  frase:'Começou a trabalhar com o projetista <span class="nome">Hélio Coelho Correia</span>, que produzia casas em estilo eclético.',
+  ctxB:'Posteriormente vai trabalhar na empresa Júlio Maranhão, construtora que fazia grandes obras de infraestrutura.',
+  o:'helio-coelho-correia', d:'reginaldo-esteves', t:'mestre-aprendiz', c:'documentado',
+  desc:'Primeiro trabalho de Esteves, em escritório de produção eclética.'
+ },
+ {
+  pag:'p. 6', ctxA:'Trabalhou na construtora Júlio Maranhão, em obras de pontes e estradas.',
+  frase:'Possibilitando o contato direto de Esteves com a engenharia, com o concreto armado, recebendo orientações profissionais do engenheiro <span class="nome">Arlindo Pontual</span>.',
+  ctxB:'',
+  o:'arlindo-pontual', d:'reginaldo-esteves', t:'mestre-aprendiz', c:'documentado',
+  desc:'Orientação profissional em obras de infraestrutura e concreto armado.',
+  alerta:{tipo:'papel', txt:'Arlindo Pontual é descrito como <b>engenheiro</b>. Pelo critério do projeto, entra na rede se houver atribuição de atuação arquitetônica — verifique antes de consolidar.'}
+ },
+ {
+  pag:'p. 7', ctxA:'Nas horas vagas, mantinha um escritório com Mauricio Castro.',
+  frase:'Que a partir de 1964 se consolidou como a empresa <span class="nome">Castro &amp; Esteves</span>, desenvolvendo projetos institucionais e industriais.',
+  ctxB:'Entre eles a Fábrica de carros Willys, que lhes deu o prêmio do IAB/PE.',
+  o:'mauricio-castro', d:'reginaldo-esteves', t:'societario', c:'documentado',
+  desc:'Sociedade formalizada como Castro & Esteves a partir de 1964.'
+ },
+ {
+  pag:'p. 9', ctxA:'Marcos Domingues começou a cursar arquitetura em 1950, terminando em 1954.',
+  frase:'Juntamente com seu colega de Faculdade, <span class="nome">Carlos Correia Lima</span>, foram vencedores de um importante concurso em 1956 para o edifício do IEP/ Instituto de Educação de Pernambuco.',
+  ctxB:'Obra de grande importância no cenário local, que contribuiu na afirmação profissional dos jovens arquitetos.',
+  o:'marcos-domingues', d:'carlos-correia-lima', t:'coautoria-pontual', c:'documentado',
+  desc:'Equipe vencedora do concurso do IEP, 1956.',
+  alerta:{tipo:'dup', txt:'Já existe uma relação <b>societário</b> entre estas duas figuras na base. Aceitar aqui <b>adiciona um segundo vínculo</b> ao mesmo par, aumentando a força da conexão — não cria duplicata.'}
+ },
+ {
+  pag:'p. 12', ctxA:'Outra obra importante projetada por Waldeci Pinto foi o edifício do DNOCS, de 1958.',
+  frase:'Realizada em sociedade com os arquitetos <span class="nome">Didier</span> e <span class="nome">Renato Torres</span>, resultado de um concurso.',
+  ctxB:'O edifício está localizado na zona norte da cidade de Recife.',
+  o:'waldeci-pinto', d:'didier-dnocs', t:'societario', c:'documentado',
+  desc:'Equipe do concurso e projeto do DNOCS, 1958.',
+  pend:'confirmar sobrenome de Didier em outra fonte',
+  alerta:{tipo:'entidade', txt:'<b>“Didier”</b> aparece sem sobrenome e não corresponde a nenhuma pessoa da base. Registrado como identificador provisório com pendência aberta.'}
+ },
+ {
+  pag:'p. 13', ctxA:'O trabalho de Paulo Vaz foi descoberto no suplemento dominical da Folha da Manhã.',
+  frase:'Observa-se também a utilização de uma série de soluções que vinham sendo adotadas por <span class="nome">seus professores</span> no curso de arquitetura, como as paredes perfuradas com buzinotes empregados em vários projetos de <span class="nome">Russo</span>.',
+  ctxB:'A elevação da casa do solo, solução sempre trabalhada por Amorim em seus projetos residenciais.',
+  o:'mario-russo', d:'paulo-vaz', t:'estudo', c:'hipotese',
+  desc:'Semelhança formal atribuída pela autora; vínculo de sala de aula não nomeado explicitamente.',
+  pend:'confirmar matrícula e professores de Paulo Vaz na EBAP',
+  alerta:{tipo:'fraco', txt:'A frase descreve <b>semelhança de solução construtiva</b>, não convívio documentado. Sugerido como <b>hipótese</b>. Considere descartar se preferir base estritamente documental.'}
+ },
+ {
+  pag:'p. 5', ctxA:'Castro atuou como professor durante 39 anos.',
+  frase:'Além de ter um escritório em parceria com <span class="nome">Heitor Maia Neto</span> e <span class="nome">Hélio Maia</span>, seus primos.',
+  ctxB:'Se associando mais tarde ao Reginaldo Esteves, outro ex-aluno da EBAP.',
+  o:'mauricio-castro', d:'heitor-maia-neto', t:'heranca', c:'documentado',
+  desc:'Primos; também sócios em escritório.',
+  extra:'Trecho gera quatro relações distintas (parentesco e sociedade, com dois primos). As demais estão enfileiradas.'
+ },
+ {
+  pag:'p. 8', ctxA:'Esteves fez práticas em escritórios franceses, em Paris.',
+  frase:'Como os de <span class="nome">M. Patrix</span>, <span class="nome">J. Vienot</span>, e em Zurique, com <span class="nome">Max Bill</span>.',
+  ctxB:'Na área industrial, esteve como visitante nas fábricas Frigidaire, Renault e Olivetti.',
+  o:'', d:'reginaldo-esteves', t:'mestre-aprendiz', c:'documentado',
+  desc:'Estágio/prática em escritório estrangeiro.',
+  alerta:{tipo:'escopo', txt:'Figuras <b>fora do recorte geográfico</b> (Paris, Zurique). Decida se a rede admite nós externos que expliquem formação, ou se isso vira apenas nota biográfica no nó de Esteves.'}
+ },
+ {
+  pag:'p. 10', ctxA:'Edison Rodrigues de Lima diplomou-se em 1954 pela Escola de Belas Artes.',
+  frase:'Desenvolveu uma série de projetos residenciais publicados no jornal Folha da Manhã, nitidamente influenciados pela arquitetura moderna produzida por <span class="nome">seus mestres</span> na EBAP.',
+  ctxB:'',
+  o:'', d:'edison-lima', t:'estudo', c:'hipotese',
+  desc:'Menção genérica a “seus mestres”, sem nome específico.',
+  pend:'identificar quais professores em currículo ou entrevista',
+  alerta:{tipo:'fraco', txt:'<b>Origem indeterminada.</b> O texto não nomeia o professor. Sem origem definida não há aresta possível — adiar costuma ser a decisão correta aqui.'}
+ },
+ {
+  pag:'p. 7', ctxA:'',
+  frase:'Indagado sobre a existência de uma suposta escola de Recife, <span class="nome">Mauricio Castro</span> afirmou que não se pode dizer que existiu tal “Escola”, já que seria necessário que tivesse havido uma comunicação de pensamentos e ideias, além de certa união profissional.',
+  ctxB:'Fato que segundo ele nunca houve no meio local.',
+  o:'', d:'mauricio-castro', t:'', c:'documentado',
+  desc:'Posição registrada sobre a existência da Escola do Recife (contrária).',
+  alerta:{tipo:'depoimento', txt:'Isto é <b>posição argumentativa</b>, não vínculo entre pessoas. Não gera aresta — deve ir para a entidade <b>depoimentos</b>. Descarte aqui para encaminhar ao fluxo correto.'}
+ }
+];
+
+let i = 0, aceitos = [], hist = [], ultimo = null;
+
+const el = id => document.getElementById(id);
+function opts(sel, lista, vazio){
+  sel.innerHTML = vazio ? `<option value="">— indefinido —</option>` : '';
+  lista.forEach(([id,nome])=>{
+    const o = document.createElement('option'); o.value=id; o.textContent=nome; sel.appendChild(o);
+  });
+}
+opts(el('fOrigem'), BASE, true);
+opts(el('fDestino'), BASE, true);
+TIPOS.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=TIPO_ROT[t]; el('fTipo').appendChild(o); });
+el('fTipo').insertAdjacentHTML('afterbegin','<option value="">— nenhum —</option>');
+
+const ALERTA_ROT = {entidade:'Resolução de entidade', papel:'Critério de escopo', dup:'Vínculo já existente', fraco:'Evidência fraca', escopo:'Fora do recorte', depoimento:'Não é uma relação'};
+
+function mostrar(){
+  if(i >= FILA.length){ return finalizar(); }
+  const c = FILA[i];
+  el('fonte').textContent = `AFONSO, Alcília (2006) · ${c.pag}`;
+  el('indice').textContent = `${i+1} / ${FILA.length}`;
+  el('barra').style.width = (i/FILA.length*100)+'%';
+  el('trecho').innerHTML =
+    (c.ctxA?`<span class="ctx">${c.ctxA} </span>`:'') +
+    `<mark>${c.frase}</mark>` +
+    (c.ctxB?`<span class="ctx"> ${c.ctxB}</span>`:'');
+  el('alertas').innerHTML = [
+    c.alerta ? `<div class="alerta ${c.alerta.tipo==='dup'?'dup':''}"><b>${ALERTA_ROT[c.alerta.tipo]}.</b> ${c.alerta.txt}</div>` : '',
+    c.extra ? `<div class="alerta"><b>Nota do extrator.</b> ${c.extra}</div>` : ''
+  ].join('');
+  el('fOrigem').value = c.o || '';
+  el('fDestino').value = c.d || '';
+  el('fTipo').value = c.t || '';
+  el('fConf').value = c.c;
+  el('fDesc').value = c.desc || '';
+  el('fPend').value = c.pend || '';
+}
+
+function decidir(acao){
+  if(i >= FILA.length) return;
+  const c = FILA[i];
+  const reg = {acao, pag:c.pag, resumo:''};
+  if(acao==='aceito'){
+    const o = el('fOrigem').value, d = el('fDestino').value, t = el('fTipo').value;
+    if(!o || !d || !t){
+      alert('Defina origem, destino e tipo antes de aceitar. Se o texto não permite, use Adiar.');
+      return;
+    }
+    const rel = {origem:o, destino:d, tipo:t, confianca:el('fConf').value, status:'rascunho', fonte:`Afonso 2006, ${c.pag}`};
+    const desc = el('fDesc').value.trim(); if(desc) rel.descricao = desc;
+    const pend = el('fPend').value.trim(); if(pend) rel.pendencia = pend;
+    aceitos.push(rel);
+    reg.resumo = `${nome(o)} → ${nome(d)} · ${TIPO_ROT[t]}`;
+  } else {
+    reg.resumo = c.frase.replace(/<[^>]+>/g,'').slice(0,62)+'…';
+  }
+  hist.unshift(reg); ultimo = {acao, indice:i, aceitouRel: acao==='aceito'};
+  i++; atualizar(); mostrar();
+}
+function nome(id){ const p = BASE.find(b=>b[0]===id); return p?p[1]:id; }
+
+function desfazer(){
+  if(!ultimo) return;
+  if(ultimo.aceitouRel) aceitos.pop();
+  hist.shift(); i = ultimo.indice; ultimo = null;
+  atualizar(); mostrar();
+  document.getElementById('palco').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function atualizar(){
+  el('nA').textContent = hist.filter(h=>h.acao==='aceito').length;
+  el('nD').textContent = hist.filter(h=>h.acao==='descartado').length;
+  el('nS').textContent = hist.filter(h=>h.acao==='adiado').length;
+  const ul = el('historico');
+  ul.innerHTML = hist.length ? '' : '<li class="vazio">Nenhuma decisão ainda.</li>';
+  hist.forEach(h=>{
+    const li=document.createElement('li');
+    const cls = h.acao==='aceito'?'a':h.acao==='descartado'?'d':'s';
+    li.innerHTML = `<span class="tag ${cls}">${h.acao==='aceito'?'aceito':h.acao==='descartado'?'descarte':'adiado'}</span><span>${h.resumo}</span>`;
+    ul.appendChild(li);
+  });
+  el('saida').textContent = aceitos.length
+    ? aceitos.map(r=>JSON.stringify(r)).join('\n')
+    : '// as relações aceitas aparecem aqui';
+}
+
+function finalizar(){
+  el('barra').style.width='100%';
+  el('palco').innerHTML = `
+    <div class="cartao fim" style="grid-column:1/-1">
+      <h3>Lote concluído</h3>
+      <p>${hist.filter(h=>h.acao==='aceito').length} relações aceitas · ${hist.filter(h=>h.acao==='descartado').length} descartadas · ${hist.filter(h=>h.acao==='adiado').length} adiadas para revisão posterior</p>
+      <pre class="saida" style="text-align:left;max-width:760px;margin:0 auto 18px">${aceitos.map(r=>JSON.stringify(r)).join('\n')||'// nenhuma relação aceita'}</pre>
+      <p style="font-size:12.5px">No fluxo real, este bloco vira um commit em <span class="mono">dados/relacoes.jsonl</span> e abre um pull request para revisão.</p>
+    </div>`;
+}
+
+el('bAceitar').onclick = ()=>decidir('aceito');
+el('bDescartar').onclick = ()=>decidir('descartado');
+el('bAdiar').onclick = ()=>decidir('adiado');
+el('bDesfazer').onclick = desfazer;
+el('bCopiar').onclick = async ()=>{
+  const txt = aceitos.map(r=>JSON.stringify(r)).join('\n');
+  try{ await navigator.clipboard.writeText(txt); el('bCopiar').textContent='Copiado'; setTimeout(()=>el('bCopiar').textContent='Copiar',1400); }
+  catch(e){ el('bCopiar').textContent='Falhou'; setTimeout(()=>el('bCopiar').textContent='Copiar',1400); }
+};
+
+document.addEventListener('keydown', e=>{
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  const k = e.key.toLowerCase();
+  if(k==='a') decidir('aceito');
+  else if(k==='d') decidir('descartado');
+  else if(k==='s') decidir('adiado');
+  else if(k==='z') desfazer();
+  else if(/^[1-7]$/.test(k)){ el('fTipo').value = TIPOS[+k-1]; }
+});
+
+mostrar(); atualizar();
+</script>
+</body>
+</html>

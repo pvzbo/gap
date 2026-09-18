@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genealogia da Arquitetura Pernambucana — protótipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#E8E4DA;
+  --panel:#F2EFE8;
+  --ink:#14161A;
+  --graphite:#6B6E73;
+  --hairline:#C4BFB4;
+  --blue:#22527A;
+  --rust:#9C3B1B;
+  --moss:#4A6B4F;
+  --plum:#6B2D5C;
+  --teal:#2F6D6A;
+  --ochre:#7A6420;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:'Archivo',system-ui,sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+header{
+  border-bottom:1px solid var(--hairline);
+  padding:14px 20px 12px;
+  display:flex;
+  align-items:baseline;
+  gap:16px;
+  flex-wrap:wrap;
+}
+h1{
+  font-size:15px;
+  font-weight:600;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.sub{
+  font-family:'Space Mono',monospace;
+  font-size:11px;
+  color:var(--graphite);
+  letter-spacing:.02em;
+}
+main{display:flex;height:calc(100% - 52px);align-items:stretch}
+aside{
+  width:290px;
+  flex:0 0 290px;
+  border-right:1px solid var(--hairline);
+  background:var(--panel);
+  overflow-y:auto;
+  padding:0 0 40px;
+}
+.block{padding:16px 18px;border-bottom:1px solid var(--hairline)}
+.block h2{
+  font-family:'Space Mono',monospace;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--graphite);
+  margin-bottom:10px;
+}
+label.chk{
+  display:flex;align-items:center;gap:8px;
+  padding:3px 0;cursor:pointer;font-size:13px;
+}
+label.chk input{accent-color:var(--ink);cursor:pointer}
+.swatch{width:14px;height:3px;border-radius:2px;flex:0 0 14px}
+.count{margin-left:auto;font-family:'Space Mono',monospace;font-size:11px;color:var(--graphite)}
+button.ghost{
+  font-family:'Archivo',sans-serif;font-size:12px;
+  background:none;border:1px solid var(--hairline);
+  color:var(--ink);padding:5px 10px;border-radius:2px;cursor:pointer;
+}
+button.ghost:hover{border-color:var(--ink)}
+button.ghost:focus-visible,label.chk input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+select{
+  width:100%;font-family:'Archivo',sans-serif;font-size:13px;
+  padding:6px 8px;background:#fff;border:1px solid var(--hairline);border-radius:2px;color:var(--ink);
+}
+#focoNome{font-size:17px;font-weight:600;line-height:1.25;margin-bottom:2px}
+#focoPapel{font-family:'Space Mono',monospace;font-size:10.5px;color:var(--graphite);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.viz{
+  border-left:2px solid var(--ochre);
+  background:rgba(122,100,32,.07);
+  padding:8px 10px;margin-bottom:12px;font-size:12.5px;line-height:1.45;
+}
+.viz em{font-style:normal;font-weight:600}
+ul.viz-list{list-style:none}
+ul.viz-list li{
+  display:flex;align-items:baseline;gap:8px;
+  padding:5px 0;border-bottom:1px solid rgba(196,191,180,.6);
+  font-size:13px;cursor:pointer;
+}
+ul.viz-list li:hover .nm{text-decoration:underline}
+.bar{height:3px;border-radius:2px;flex:0 0 auto;align-self:center}
+.nm{flex:1}
+.frc{font-family:'Space Mono',monospace;font-size:11px;color:var(--graphite)}
+.tp{font-family:'Space Mono',monospace;font-size:10px;color:var(--graphite);letter-spacing:.02em}
+.metric{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0}
+.metric span:last-child{font-family:'Space Mono',monospace;color:var(--graphite)}
+#canvasWrap{flex:1;position:relative;min-width:0}
+svg#graph{width:100%;height:100%;display:block;cursor:grab}
+svg#graph:active{cursor:grabbing}
+.hint{
+  position:absolute;left:16px;bottom:14px;
+  font-family:'Space Mono',monospace;font-size:10.5px;color:var(--graphite);
+  background:rgba(232,228,218,.85);padding:4px 8px;border-radius:2px;
+  pointer-events:none;
+}
+#tip{
+  position:absolute;pointer-events:none;opacity:0;transition:opacity .12s;
+  background:var(--ink);color:var(--ground);padding:6px 9px;border-radius:2px;
+  font-size:12px;max-width:230px;line-height:1.35;z-index:5;
+}
+#tip .tt{font-family:'Space Mono',monospace;font-size:10px;opacity:.7;display:block;margin-top:2px}
+.node-label{font-size:10.5px;font-family:'Archivo',sans-serif;fill:var(--ink);pointer-events:none;paint-order:stroke;stroke:var(--ground);stroke-width:3px;stroke-linejoin:round}
+.ring{fill:none;stroke:var(--hairline);stroke-dasharray:2 5}
+.ring-lbl{font-family:'Space Mono',monospace;font-size:9.5px;fill:var(--graphite);letter-spacing:.1em}
+@media (max-width:820px){
+  main{flex-direction:column;height:auto}
+  aside{width:100%;flex:none;border-right:none;border-bottom:1px solid var(--hairline);max-height:none}
+  #canvasWrap{height:65vh}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Genealogia da Arquitetura Pernambucana</h1>
+  <span class="sub">protótipo · base: 1 fonte (Afonso, 2006) · 26 pessoas · 29 relações</span>
+</header>
+<main>
+<aside>
+  <div class="block">
+    <h2>Focalizar figura</h2>
+    <select id="seletor"><option value="">— visão geral da rede —</option></select>
+    <div style="margin-top:8px;display:flex;gap:6px">
+      <button class="ghost" id="limpar">Limpar foco</button>
+      <button class="ghost" id="reorganizar">Reorganizar</button>
+    </div>
+  </div>
+  <div class="block" id="painelFoco" style="display:none">
+    <h2>Vizinhança direta</h2>
+    <div id="focoNome"></div>
+    <div id="focoPapel"></div>
+    <div id="focoDep"></div>
+    <ul class="viz-list" id="listaViz"></ul>
+    <div id="focoSalto2" style="margin-top:10px;font-size:12px;color:var(--graphite)"></div>
+  </div>
+  <div class="block">
+    <h2>Tipos de relação</h2>
+    <div id="filtros"></div>
+  </div>
+  <div class="block">
+    <h2>Camadas de evidência</h2>
+    <label class="chk"><input type="checkbox" id="chkHip" checked><span>Mostrar relações hipotéticas</span></label>
+    <label class="chk"><input type="checkbox" id="chkDac"><span>Simular equipe DAC/PE</span></label>
+    <div style="font-size:11.5px;color:var(--graphite);margin-top:8px;line-height:1.4">
+      A segunda opção injeta vínculos de equipe ainda não verificados, só para observar o efeito no layout.
+    </div>
+  </div>
+  <div class="block">
+    <h2>Métricas da rede</h2>
+    <div id="metricas"></div>
+  </div>
+</aside>
+<div id="canvasWrap">
+  <svg id="graph"></svg>
+  <div id="tip"></div>
+  <div class="hint">Clique num nó para focalizar · arraste para reposicionar · scroll para zoom</div>
+</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const TIPOS = {
+  'heranca':          {rot:'Hereditariedade',  cor:'#6B2D5C'},
+  'mestre-aprendiz':  {rot:'Mestre-aprendiz',  cor:'#22527A'},
+  'estudo':           {rot:'Estudo',           cor:'#4A6B4F'},
+  'trabalho':         {rot:'Trabalho',         cor:'#7A6420'},
+  'societario':       {rot:'Societário',       cor:'#9C3B1B'},
+  'dissidencia':      {rot:'Dissidência',      cor:'#B02020'},
+  'coautoria-pontual':{rot:'Coautoria pontual',cor:'#2F6D6A'}
+};
+const PESO_CONF = {documentado:1.0, tradicao_oral:0.6, hipotese:0.3};
+
+const PESSOAS = [
+ {id:'luiz-nunes',nome:'Luiz Nunes',papel:'precursor'},
+ {id:'mario-russo',nome:'Mario Russo',papel:'mestre'},
+ {id:'acacio-gil-borsoi',nome:'Acácio Gil Borsoi',papel:'mestre'},
+ {id:'delfim-amorim',nome:'Delfim Amorim',papel:'mestre'},
+ {id:'heitor-maia-neto',nome:'Heitor Maia Neto',papel:'mestre'},
+ {id:'mauricio-castro',nome:'Mauricio Castro',papel:'discipulo',dep:{existe:false,txt:'Nega a existência: faltou comunicação de ideias e união profissional no meio local.'}},
+ {id:'everaldo-gadelha',nome:'Everaldo Gadelha',papel:'discipulo'},
+ {id:'reginaldo-esteves',nome:'Reginaldo Esteves',papel:'discipulo',dep:{existe:true,txt:'Afirma que sim: raiz no regionalismo de Gilberto Freyre e na prática de Luiz Nunes.'}},
+ {id:'marcos-domingues',nome:'Marcos Domingues',papel:'discipulo',dep:{existe:true,txt:'Afirma que sim: terraços, azulejos e telhados de beiral generoso como marcas recorrentes.'}},
+ {id:'carlos-correia-lima',nome:'Carlos Correia Lima',papel:'discipulo',dep:{existe:true,txt:'Afirma que sim, com Delfim Amorim como figura central da síntese.'}},
+ {id:'edison-lima',nome:'Edison Lima',papel:'discipulo'},
+ {id:'waldeci-pinto',nome:'Waldeci Pinto',papel:'discipulo',dep:{existe:true,txt:'Afirma que sim: Luiz Nunes precursor, consolidado por Russo, Borsoi e Amorim.'}},
+ {id:'paulo-vaz',nome:'Paulo Vaz',papel:'discipulo'},
+ {id:'augusto-reynaldo',nome:'Augusto Reynaldo',papel:'discipulo'},
+ {id:'dilson-mota',nome:'Dílson Mota',papel:'discipulo'},
+ {id:'helio-moreira',nome:'Hélio Moreira',papel:'discipulo'},
+ {id:'ana-regina-moreira',nome:'Ana Regina Moreira',papel:'discipulo'},
+ {id:'helio-coelho-correia',nome:'Hélio Coelho Correia',papel:'outro'},
+ {id:'arlindo-pontual',nome:'Arlindo Pontual',papel:'outro'},
+ {id:'airton-carvalho',nome:'Airton Carvalho',papel:'outro'},
+ {id:'emerson-pinheiro',nome:'Emerson Pinheiro',papel:'outro'},
+ {id:'eduardo-burle-ferreira',nome:'Eduardo Burle Ferreira',papel:'outro'},
+ {id:'vital-pessoa-melo',nome:'Vital Pessoa de Melo',papel:'outro'},
+ {id:'didier-dnocs',nome:'Didier [?]',papel:'outro',pend:true},
+ {id:'renato-torres',nome:'Renato Torres',papel:'outro'},
+ {id:'helio-maia',nome:'Hélio Maia',papel:'outro'}
+];
+
+const RELACOES = [
+ {o:'mario-russo',d:'mauricio-castro',t:'estudo',c:'documentado'},
+ {o:'mario-russo',d:'reginaldo-esteves',t:'estudo',c:'documentado'},
+ {o:'acacio-gil-borsoi',d:'reginaldo-esteves',t:'estudo',c:'documentado'},
+ {o:'mario-russo',d:'marcos-domingues',t:'estudo',c:'documentado'},
+ {o:'acacio-gil-borsoi',d:'marcos-domingues',t:'estudo',c:'documentado'},
+ {o:'mario-russo',d:'carlos-correia-lima',t:'estudo',c:'documentado'},
+ {o:'acacio-gil-borsoi',d:'carlos-correia-lima',t:'estudo',c:'documentado'},
+ {o:'delfim-amorim',d:'carlos-correia-lima',t:'estudo',c:'documentado',n:'aluno com quem mais se identificava'},
+ {o:'mario-russo',d:'waldeci-pinto',t:'estudo',c:'documentado'},
+ {o:'acacio-gil-borsoi',d:'waldeci-pinto',t:'estudo',c:'documentado'},
+ {o:'delfim-amorim',d:'waldeci-pinto',t:'estudo',c:'documentado'},
+ {o:'acacio-gil-borsoi',d:'augusto-reynaldo',t:'estudo',c:'documentado'},
+ {o:'mario-russo',d:'mauricio-castro',t:'mestre-aprendiz',c:'documentado',n:'convidado para o ETCUR ainda estudante'},
+ {o:'mario-russo',d:'reginaldo-esteves',t:'mestre-aprendiz',c:'documentado',n:'equipe do ETCUR'},
+ {o:'mario-russo',d:'waldeci-pinto',t:'mestre-aprendiz',c:'documentado',n:'ETCUR a partir de 1954'},
+ {o:'arlindo-pontual',d:'reginaldo-esteves',t:'mestre-aprendiz',c:'documentado',n:'orientação em obras de infraestrutura'},
+ {o:'helio-coelho-correia',d:'reginaldo-esteves',t:'mestre-aprendiz',c:'documentado',n:'primeiro trabalho'},
+ {o:'mauricio-castro',d:'heitor-maia-neto',t:'heranca',c:'documentado',n:'primos'},
+ {o:'mauricio-castro',d:'helio-maia',t:'heranca',c:'documentado',n:'primos'},
+ {o:'mauricio-castro',d:'reginaldo-esteves',t:'societario',c:'documentado',n:'Castro & Esteves, 1964'},
+ {o:'mauricio-castro',d:'heitor-maia-neto',t:'societario',c:'documentado'},
+ {o:'mauricio-castro',d:'helio-maia',t:'societario',c:'documentado'},
+ {o:'reginaldo-esteves',d:'vital-pessoa-melo',t:'societario',c:'documentado',n:'edifício CELPE'},
+ {o:'marcos-domingues',d:'carlos-correia-lima',t:'societario',c:'documentado'},
+ {o:'waldeci-pinto',d:'emerson-pinheiro',t:'societario',c:'documentado'},
+ {o:'waldeci-pinto',d:'didier-dnocs',t:'societario',c:'documentado',n:'DNOCS, 1958'},
+ {o:'waldeci-pinto',d:'renato-torres',t:'societario',c:'documentado',n:'DNOCS, 1958'},
+ {o:'paulo-vaz',d:'eduardo-burle-ferreira',t:'societario',c:'documentado'},
+ {o:'marcos-domingues',d:'carlos-correia-lima',t:'coautoria-pontual',c:'documentado',n:'edifício IEP, 1956'},
+ {o:'mario-russo',d:'everaldo-gadelha',t:'estudo',c:'hipotese',n:'colega de turma citado sem vínculo explícito'},
+ {o:'acacio-gil-borsoi',d:'edison-lima',t:'estudo',c:'hipotese',n:'“influenciado por seus mestres na EBAP”, sem nome específico'},
+ {o:'mario-russo',d:'paulo-vaz',t:'estudo',c:'hipotese',n:'soluções atribuídas a Russo, vínculo não nomeado'}
+];
+
+const EXTRA_DAC = [
+ {id:'joaquim-cardozo',nome:'Joaquim Cardozo',papel:'outro'},
+ {id:'roberto-burle-marx',nome:'Roberto Burle Marx',papel:'outro'}
+];
+const EXTRA_DAC_REL = [
+ {o:'luiz-nunes',d:'joaquim-cardozo',t:'trabalho',c:'hipotese',n:'equipe DAC/PE — pendente de fonte'},
+ {o:'luiz-nunes',d:'roberto-burle-marx',t:'trabalho',c:'hipotese',n:'equipe DAC/PE — pendente de fonte'}
+];
+
+const PAPEL_COR = {precursor:'#6B2D5C', mestre:'#22527A', discipulo:'#9C3B1B', outro:'#8A8578'};
+const PAPEL_ROT = {precursor:'Precursor reconhecido', mestre:'Mestre / professor', discipulo:'Discípulo', outro:'Vínculo periférico'};
+
+let tiposAtivos = new Set(Object.keys(TIPOS));
+let mostrarHip = true, mostrarDac = false, focoId = null;
+
+const svg = d3.select('#graph');
+const g = svg.append('g');
+const gRings = g.append('g');
+const gLinks = g.append('g');
+const gNodes = g.append('g');
+const tip = d3.select('#tip');
+let sim, W=800, H=600;
+
+const zoom = d3.zoom().scaleExtent([0.35,3]).on('zoom', e => g.attr('transform', e.transform));
+svg.call(zoom);
+
+function dados(){
+  const pes = mostrarDac ? PESSOAS.concat(EXTRA_DAC) : PESSOAS;
+  let rel = mostrarDac ? RELACOES.concat(EXTRA_DAC_REL) : RELACOES;
+  rel = rel.filter(r => tiposAtivos.has(r.t) && (mostrarHip || r.c !== 'hipotese'));
+  const mapa = new Map();
+  rel.forEach(r => {
+    const k = [r.o,r.d].sort().join('|');
+    if(!mapa.has(k)) mapa.set(k,{source:r.o,target:r.d,peso:0,tipos:[],confs:[],notas:[]});
+    const e = mapa.get(k);
+    e.peso += PESO_CONF[r.c] ?? .5;
+    e.tipos.push(r.t); e.confs.push(r.c);
+    if(r.n) e.notas.push(r.n);
+  });
+  return {nos: pes.map(p=>({...p})), arestas:[...mapa.values()]};
+}
+
+function hops(arestas, origem){
+  const adj = new Map();
+  arestas.forEach(e=>{
+    const s = e.source.id ?? e.source, t = e.target.id ?? e.target;
+    if(!adj.has(s)) adj.set(s,[]); if(!adj.has(t)) adj.set(t,[]);
+    adj.get(s).push(t); adj.get(t).push(s);
+  });
+  const dist = new Map([[origem,0]]); const fila=[origem];
+  while(fila.length){
+    const n = fila.shift();
+    (adj.get(n)||[]).forEach(v=>{ if(!dist.has(v)){dist.set(v,dist.get(n)+1); fila.push(v);} });
+  }
+  return dist;
+}
+
+function render(){
+  const {nos, arestas} = dados();
+  const grau = new Map(nos.map(n=>[n.id,0]));
+  const forca = new Map(nos.map(n=>[n.id,0]));
+  arestas.forEach(e=>{
+    grau.set(e.source, (grau.get(e.source)||0)+1);
+    grau.set(e.target, (grau.get(e.target)||0)+1);
+    forca.set(e.source,(forca.get(e.source)||0)+e.peso);
+    forca.set(e.target,(forca.get(e.target)||0)+e.peso);
+  });
+  nos.forEach(n=>{ n.grau = grau.get(n.id)||0; n.forca = forca.get(n.id)||0; });
+
+  const dist = focoId ? hops(arestas, focoId) : null;
+
+  const link = gLinks.selectAll('line').data(arestas, d=>`${d.source.id??d.source}|${d.target.id??d.target}`);
+  link.exit().remove();
+  const linkE = link.enter().append('line').attr('stroke-linecap','round');
+  const linkAll = linkE.merge(link)
+    .attr('stroke', d=>TIPOS[d.tipos[0]].cor)
+    .attr('stroke-width', d=>Math.min(1+d.peso*1.4, 5))
+    .attr('stroke-dasharray', d=>d.confs.every(c=>c==='hipotese')?'3 4':null)
+    .attr('opacity', d=>{
+      if(!dist) return .55;
+      const s=d.source.id??d.source, t=d.target.id??d.target;
+      return (dist.get(s)<=1 && dist.get(t)<=1) ? .85 : .1;
+    });
+
+  const node = gNodes.selectAll('g.no').data(nos, d=>d.id);
+  node.exit().remove();
+  const nodeE = node.enter().append('g').attr('class','no').style('cursor','pointer');
+  nodeE.append('circle');
+  nodeE.append('text').attr('class','node-label').attr('text-anchor','middle');
+  const nodeAll = nodeE.merge(node);
+
+  nodeAll.select('circle')
+    .attr('r', d=> 5 + Math.min(d.forca,9)*1.5)
+    .attr('fill', d=>PAPEL_COR[d.papel])
+    .attr('stroke', d=> d.id===focoId ? '#14161A' : (d.grau===0?'#8A8578':'none'))
+    .attr('stroke-width', d=> d.id===focoId ? 2.5 : (d.grau===0?1:0))
+    .attr('stroke-dasharray', d=> (d.grau===0 && d.id!==focoId) ? '2 3' : null)
+    .attr('opacity', d=>{
+      if(!dist) return d.grau===0?.45:.9;
+      const h = dist.get(d.id);
+      return h===undefined ? .12 : (h===0?1 : h===1?.9 : h===2?.4 : .12);
+    });
+
+  nodeAll.select('text')
+    .text(d=>d.nome)
+    .attr('dy', d=> 5 + Math.min(d.forca,9)*1.5 + 11)
+    .attr('opacity', d=>{
+      if(!dist) return d.forca>=2?1:.7;
+      const h=dist.get(d.id);
+      return h===undefined?.1:(h<=1?1:h===2?.45:.1);
+    });
+
+  nodeAll.on('click',(e,d)=>{ focarEm(d.id); })
+    .on('mouseenter',(e,d)=>{
+      const rect = document.getElementById('canvasWrap').getBoundingClientRect();
+      tip.style('opacity',1)
+        .style('left', (e.clientX-rect.left+14)+'px')
+        .style('top', (e.clientY-rect.top+10)+'px')
+        .html(`<strong>${d.nome}</strong><span class="tt">${PAPEL_ROT[d.papel]} · ${d.grau} vínculo(s) · força ${d.forca.toFixed(1)}</span>`);
+    })
+    .on('mousemove',(e)=>{
+      const rect = document.getElementById('canvasWrap').getBoundingClientRect();
+      tip.style('left',(e.clientX-rect.left+14)+'px').style('top',(e.clientY-rect.top+10)+'px');
+    })
+    .on('mouseleave',()=>tip.style('opacity',0));
+
+  nodeAll.call(d3.drag()
+    .on('start',(e,d)=>{ if(!e.active) sim.alphaTarget(.25).restart(); d.fx=d.x; d.fy=d.y; })
+    .on('drag',(e,d)=>{ d.fx=e.x; d.fy=e.y; })
+    .on('end',(e,d)=>{ if(!e.active) sim.alphaTarget(0); if(d.id!==focoId){d.fx=null;d.fy=null;} }));
+
+  gRings.selectAll('*').remove();
+  if(focoId){
+    [1,2].forEach(h=>{
+      gRings.append('circle').attr('class','ring').attr('cx',W/2).attr('cy',H/2).attr('r',h*135);
+      gRings.append('text').attr('class','ring-lbl').attr('x',W/2).attr('y',H/2-h*135+13)
+        .attr('text-anchor','middle').text(h===1?'CONTATO DIRETO':'SEGUNDO GRAU');
+    });
+  }
+
+  sim = d3.forceSimulation(nos)
+    .force('link', d3.forceLink(arestas).id(d=>d.id).distance(d=> focoId ? 90 : 105 - Math.min(d.peso,3)*14).strength(d=>Math.min(.15+d.peso*.14,.75)))
+    .force('charge', d3.forceManyBody().strength(focoId?-260:-330))
+    .force('collide', d3.forceCollide().radius(d=>14+Math.min(d.forca,9)*1.5))
+    .force('center', focoId?null:d3.forceCenter(W/2,H/2))
+    .force('x', focoId?null:d3.forceX(W/2).strength(.045))
+    .force('y', focoId?null:d3.forceY(H/2).strength(.06));
+
+  if(focoId && dist){
+    nos.forEach(n=>{ if(n.id===focoId){ n.fx=W/2; n.fy=H/2; } else { n.fx=null; n.fy=null; } });
+    sim.force('radial', d3.forceRadial(d=>{
+      const h = dist.get(d.id);
+      return h===undefined ? 330 : h*135;
+    }, W/2, H/2).strength(d=> dist.get(d.id)===undefined ? .35 : .85));
+  }
+
+  sim.on('tick',()=>{
+    linkAll.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    nodeAll.attr('transform',d=>`translate(${d.x},${d.y})`);
+  });
+
+  atualizarPainel(nos, arestas, dist);
+  atualizarMetricas(nos, arestas);
+}
+
+function atualizarPainel(nos, arestas, dist){
+  const painel = document.getElementById('painelFoco');
+  if(!focoId){ painel.style.display='none'; return; }
+  painel.style.display='block';
+  const p = nos.find(n=>n.id===focoId);
+  document.getElementById('focoNome').textContent = p.nome;
+  document.getElementById('focoPapel').textContent = PAPEL_ROT[p.papel] + (p.pend?' · nome incompleto':'');
+
+  const dep = document.getElementById('focoDep');
+  dep.innerHTML = p.dep ? `<div class="viz"><em>Sobre a Escola do Recife:</em> ${p.dep.txt}</div>` : '';
+
+  const viz = arestas.filter(e=>(e.source.id??e.source)===focoId || (e.target.id??e.target)===focoId)
+    .map(e=>{
+      const outroId = (e.source.id??e.source)===focoId ? (e.target.id??e.target) : (e.source.id??e.source);
+      return {id:outroId, nome:(nos.find(n=>n.id===outroId)||{}).nome||outroId, peso:e.peso, tipos:e.tipos, notas:e.notas};
+    }).sort((a,b)=>b.peso-a.peso);
+
+  const lista = document.getElementById('listaViz');
+  lista.innerHTML = '';
+  if(!viz.length){
+    lista.innerHTML = '<li style="cursor:default;color:var(--graphite)">Sem vínculos documentados nesta base. Fonte pendente.</li>';
+  }
+  viz.forEach(v=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="bar" style="width:${Math.max(8,v.peso*16)}px;background:${TIPOS[v.tipos[0]].cor}"></span>
+      <span class="nm">${v.nome}<br><span class="tp">${v.tipos.map(t=>TIPOS[t].rot.toLowerCase()).join(' + ')}</span></span>
+      <span class="frc">${v.peso.toFixed(1)}</span>`;
+    li.onclick = ()=>focarEm(v.id);
+    lista.appendChild(li);
+  });
+
+  const s2 = dist ? [...dist.entries()].filter(([,h])=>h===2).length : 0;
+  document.getElementById('focoSalto2').textContent = s2 ? `${s2} figuras a dois saltos de distância.` : '';
+}
+
+function atualizarMetricas(nos, arestas){
+  const conectados = nos.filter(n=>n.grau>0).length;
+  const adj = new Map(nos.map(n=>[n.id,[]]));
+  arestas.forEach(e=>{
+    const s=e.source.id??e.source, t=e.target.id??e.target;
+    adj.get(s).push(t); adj.get(t).push(s);
+  });
+  const visto = new Set(); let comps = 0;
+  nos.forEach(n=>{
+    if(visto.has(n.id) || !n.grau) return;
+    comps++; const fila=[n.id]; visto.add(n.id);
+    while(fila.length){ const c=fila.pop(); adj.get(c).forEach(v=>{ if(!visto.has(v)){visto.add(v);fila.push(v);} }); }
+  });
+  const top = [...nos].sort((a,b)=>b.forca-a.forca).slice(0,3);
+  document.getElementById('metricas').innerHTML = `
+    <div class="metric"><span>Pessoas na base</span><span>${nos.length}</span></div>
+    <div class="metric"><span>Com ao menos 1 vínculo</span><span>${conectados}</span></div>
+    <div class="metric"><span>Isoladas</span><span>${nos.length-conectados}</span></div>
+    <div class="metric"><span>Pares conectados</span><span>${arestas.length}</span></div>
+    <div class="metric"><span>Componentes separados</span><span>${comps}</span></div>
+    <div style="margin-top:10px;font-size:11.5px;color:var(--graphite)">Maior força acumulada:<br>${top.map(t=>`${t.nome} (${t.forca.toFixed(1)})`).join('<br>')}</div>`;
+}
+
+function focarEm(id){
+  focoId = (focoId===id) ? null : id;
+  document.getElementById('seletor').value = focoId || '';
+  render();
+}
+
+function montarFiltros(){
+  const cont = document.getElementById('filtros');
+  Object.entries(TIPOS).forEach(([k,v])=>{
+    const n = RELACOES.filter(r=>r.t===k).length;
+    const l = document.createElement('label');
+    l.className='chk';
+    l.innerHTML = `<input type="checkbox" ${tiposAtivos.has(k)?'checked':''} data-t="${k}">
+      <span class="swatch" style="background:${v.cor}"></span><span>${v.rot}</span><span class="count">${n}</span>`;
+    l.querySelector('input').onchange = e=>{
+      e.target.checked ? tiposAtivos.add(k) : tiposAtivos.delete(k);
+      render();
+    };
+    cont.appendChild(l);
+  });
+}
+
+function montarSeletor(){
+  const s = document.getElementById('seletor');
+  PESSOAS.concat(EXTRA_DAC).sort((a,b)=>a.nome.localeCompare(b.nome,'pt')).forEach(p=>{
+    const o=document.createElement('option'); o.value=p.id; o.textContent=p.nome; s.appendChild(o);
+  });
+  s.onchange = e => { focoId = e.target.value || null; render(); };
+}
+
+function dimensionar(){
+  const wrap = document.getElementById('canvasWrap');
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  svg.attr('viewBox',`0 0 ${W} ${H}`);
+}
+
+document.getElementById('limpar').onclick = ()=>{ focoId=null; document.getElementById('seletor').value=''; render(); };
+document.getElementById('reorganizar').onclick = ()=>{ if(sim) sim.alpha(.9).restart(); };
+document.getElementById('chkHip').onchange = e=>{ mostrarHip=e.target.checked; render(); };
+document.getElementById('chkDac').onchange = e=>{ mostrarDac=e.target.checked; render(); };
+window.addEventListener('resize',()=>{ dimensionar(); render(); });
+
+dimensionar();
+montarFiltros();
+montarSeletor();
+render();
+</script>
+</body>
+</html>

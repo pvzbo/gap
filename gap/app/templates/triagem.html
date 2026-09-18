@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triagem — {{ fonte.id }} · GAP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body data-fonte="{{ fonte_id }}">
+<header>
+  <h1><a href="/">GAP</a> · triagem</h1>
+  <span class="sub" id="lote">{{ fonte.autor or '' }} {% if fonte.ano %}({{ fonte.ano }}){% endif %} · {{ fonte.titulo or fonte.id }}</span>
+  <div class="progresso"><i id="barra"></i></div>
+  <div class="placar">
+    <span class="aceito">aceitos <b id="nA">0</b></span>
+    <span class="descartado">descartados <b id="nD">0</b></span>
+    <span class="adiado">adiados <b id="nS">0</b></span>
+    <span id="git" class="sub"></span>
+  </div>
+</header>
+
+<main class="triagem" id="palco">
+  <div>
+    <div class="cartao" id="cartao">
+      <div class="cartao-topo">
+        <span class="fonte" id="cabFonte"></span>
+        <span class="indice" id="indice"></span>
+      </div>
+      <div class="corpo">
+        <h2 class="sec">Trecho localizado</h2>
+        <div class="trecho" id="trecho"></div>
+        <div id="alertas"></div>
+
+        <!-- formulário de relação -->
+        <div id="formRelacao">
+          <h2 class="sec" style="margin-top:20px">Relação proposta</h2>
+          <div class="campos">
+            <div class="campo"><label>Origem</label><select id="fOrigem"></select><span class="sub" id="fOrigemNome"></span></div>
+            <div class="campo"><label>Destino</label><select id="fDestino"></select><span class="sub" id="fDestinoNome"></span></div>
+            <div class="nova-pessoa oculto" id="novaOrigem"><h2 class="sec">Nova pessoa (origem)</h2><div class="campos"><div class="campo"><label>Nome</label><input id="noNome"></div><div class="campo"><label>Atribuição</label><select id="noAtrib"><option value="">—</option><option>arquiteto</option><option>urbanista</option><option>engenheiro</option><option>professor</option><option>outro</option></select></div><div class="campo"><label>Papel</label><select id="noPapel"><option value="">—</option><option>precursor</option><option>mestre</option><option>discipulo</option></select></div></div></div>
+            <div class="nova-pessoa oculto" id="novaDestino"><h2 class="sec">Nova pessoa (destino)</h2><div class="campos"><div class="campo"><label>Nome</label><input id="ndNome"></div><div class="campo"><label>Atribuição</label><select id="ndAtrib"><option value="">—</option><option>arquiteto</option><option>urbanista</option><option>engenheiro</option><option>professor</option><option>outro</option></select></div><div class="campo"><label>Papel</label><select id="ndPapel"><option value="">—</option><option>precursor</option><option>mestre</option><option>discipulo</option></select></div></div></div>
+            <div class="campo"><label>Tipo de relação</label><select id="fTipo"></select></div>
+            <div class="campo"><label>Confiança da evidência</label>
+              <select id="fConf"><option value="documentado">documentado</option><option value="tradicao_oral">tradição oral</option><option value="hipotese">hipótese</option></select></div>
+            <div class="campo"><label>Subtipo (livre; vira tipo se recorrer 3+)</label><input id="fSubtipo" placeholder="ex.: primos, esposa, concurso, estágio"></div>
+            <div class="campo"><label>Período (AAAA, AAAA-AAAA, AAAA-)</label><input id="fPeriodo"></div>
+            <div class="campo wide"><label>Descrição / contexto</label><textarea id="fDesc"></textarea></div>
+            <div class="campo wide"><label>Trecho literal que fundamenta (editável)</label><textarea id="fTrecho"></textarea></div>
+            <div class="campo"><label>Página</label><input id="fPagina"></div>
+            <div class="campo"><label><input type="checkbox" id="fSim" style="width:auto;margin-right:6px">relação simétrica</label></div>
+            <div class="campo wide"><label>Pendência a resolver (opcional)</label><input id="fPend" placeholder="ex.: confirmar sobrenome em outra fonte"></div>
+          </div>
+          <div id="parExistente" class="sub" style="margin-top:10px"></div>
+        </div>
+
+        <!-- formulário de depoimento -->
+        <div id="formDepoimento" class="oculto">
+          <h2 class="sec" style="margin-top:20px">Depoimento sobre a Escola do Recife</h2>
+          <div class="campos">
+            <div class="campo"><label>Pessoa</label><select id="dPessoa"></select><span class="sub" id="dPessoaNome"></span></div>
+            <div class="campo"><label>Afirma que a escola existiu?</label>
+              <select id="dExiste"><option value="true">sim</option><option value="false">não</option><option value="">indefinido</option></select></div>
+            <div class="campo wide"><label>Argumento</label><textarea id="dArg"></textarea></div>
+            <div class="campo wide"><label>Trecho literal</label><textarea id="dTrecho"></textarea></div>
+            <div class="campo"><label>Página</label><input id="dPagina"></div>
+            <div class="campo"><label>Data do depoimento (AAAA-MM)</label><input id="dData"></div>
+          </div>
+        </div>
+      </div>
+      <div class="acoes">
+        <button class="primaria" id="bAceitar">Aceitar <kbd>A</kbd></button>
+        <button id="bAdiar">Adiar <kbd>S</kbd></button>
+        <button class="perigo" id="bDescartar">Descartar <kbd>D</kbd></button>
+        <button id="bDepoimento" title="Tratar este candidato como depoimento em vez de relação">→ Depoimento</button>
+        <span class="espaco"></span>
+        <button id="bDesfazer">Desfazer <kbd>Z</kbd></button>
+      </div>
+    </div>
+    <div class="atalhos">A aceitar · D descartar · S adiar · Z desfazer · 1–7 definir tipo · X trocar origem/destino</div>
+  </div>
+
+  <div class="lateral">
+    <div class="cartao">
+      <div class="cartao-topo"><span class="fonte">Decisões desta fonte</span><span class="indice" id="nDecisoes"></span></div>
+      <div class="corpo"><ul class="lista" id="historico"><li class="vazio">Nenhuma decisão ainda.</li></ul></div>
+    </div>
+
+    <div class="cartao">
+      <div class="cartao-topo"><span class="fonte">Entrada manual de relação</span><span class="sub">para o que o leitor infere e a máquina não</span></div>
+      <div class="corpo">
+        <div class="campos">
+          <div class="campo"><label>Origem</label><select id="mOrigem"></select></div>
+          <div class="campo"><label>Destino</label><select id="mDestino"></select></div>
+          <div class="campo"><label>Tipo</label><select id="mTipo"></select></div>
+          <div class="campo"><label>Confiança</label><select id="mConf"><option value="documentado">documentado</option><option value="tradicao_oral">tradição oral</option><option value="hipotese">hipótese</option></select></div>
+          <div class="campo"><label>Fonte</label><select id="mFonte"></select></div>
+          <div class="campo"><label>Página</label><input id="mPagina"></div>
+          <div class="campo"><label>Período</label><input id="mPeriodo"></div>
+          <div class="campo"><label><input type="checkbox" id="mSim" style="width:auto;margin-right:6px">simétrica</label></div>
+          <div class="campo wide"><label>Descrição</label><input id="mDesc"></div>
+          <div class="campo wide"><label>Trecho literal</label><textarea id="mTrecho"></textarea></div>
+          <div class="campo wide"><label>Pendência</label><input id="mPend"></div>
+        </div>
+      </div>
+      <div class="acoes"><button class="primaria" id="bManual">Gravar relação</button></div>
+    </div>
+
+    <div class="cartao">
+      <div class="cartao-topo"><span class="fonte">Nova pessoa</span></div>
+      <div class="corpo">
+        <div class="campos">
+          <div class="campo wide"><label>Nome</label><input id="pNome"></div>
+          <div class="campo"><label>Atribuição</label><select id="pAtrib"><option value="">—</option><option>arquiteto</option><option>urbanista</option><option>engenheiro</option><option>professor</option><option>outro</option></select></div>
+          <div class="campo"><label>Papel historiográfico</label><select id="pPapel"><option value="">—</option><option>precursor</option><option>mestre</option><option>discipulo</option></select></div>
+          <div class="campo wide"><label>Notas</label><input id="pNotas"></div>
+        </div>
+      </div>
+      <div class="acoes"><button id="bPessoa">Criar pessoa</button></div>
+    </div>
+
+    <div class="cartao">
+      <div class="cartao-topo"><span class="fonte">Última gravação</span></div>
+      <div class="corpo"><pre class="saida" id="saida">// as relações aceitas aparecem aqui como JSONL</pre></div>
+    </div>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+<script src="/static/triagem.js"></script>
+</body>
+</html>

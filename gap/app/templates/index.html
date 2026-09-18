@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAP — painel de fontes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header>
+  <h1><a href="/">GAP · painel</a></h1>
+  <span class="sub">Genealogia da Arquitetura Pernambucana · v{{ versao }}</span>
+  <span class="espaco"></span>
+  <span class="git">{% if git.disponivel %}git: {{ git.branch }} @ {{ git.commit or '—' }}{% if git.sujo %} · alterações não commitadas{% endif %}{% else %}git indisponível — decisões gravam nos JSONL sem commit{% endif %}</span>
+  <a href="/site/" target="_blank"><button class="mini">Abrir site público</button></a>
+  <button class="mini" id="bBuild">Regenerar exportações</button>
+  <a href="/triagem/manual"><button class="mini">Entrada manual</button></a>
+</header>
+<main>
+  <div class="resumo">
+    <div class="metric"><span>Pessoas</span><span>{{ n_pessoas }}</span></div>
+    <div class="metric"><span>Relações</span><span>{{ n_relacoes }}</span></div>
+    <div class="metric"><span>Depoimentos</span><span>{{ n_depoimentos }}</span></div>
+    <div class="metric"><span>Fontes</span><span>{{ fontes|length }}</span></div>
+    <div class="metric"><span>Modelo de extração</span><span style="font-size:13px">{{ modelo }}</span></div>
+  </div>
+
+  <div class="cartao">
+    <div class="cartao-topo">
+      <span class="fonte">Fontes e estado do funil</span>
+      <span class="sub">chunks → candidatos (pré-filtro) → extraídos (Claude) → fila → decisões</span>
+      <button class="mini" id="bInventario">Inventariar raw_pdfs/</button>
+    </div>
+    <table class="fontes">
+      <thead>
+        <tr>
+          <th>Fonte</th><th>Tipo</th><th>Ano</th><th>PDF</th>
+          <th>Chunks</th><th>Cand.</th><th>Extr.</th><th>Fila</th><th>Pend.</th><th>Aceitos</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for f in fontes %}
+        <tr data-fonte="{{ f.id }}">
+          <td class="titulo-fonte">
+            <strong>{{ f.autor or '—' }}</strong> {{ f.titulo or f.id }}
+            <small>{{ f.id }}{% if f.metadados_automaticos %} · metadados automáticos — revisar{% endif %}{% if f.processado %} · <span class="tag ok">processada</span>{% endif %}{% if f.provavel_escaneado %} · <span class="tag d">provável escaneado</span>{% endif %}</small>
+          </td>
+          <td>{{ f.tipo }}</td>
+          <td class="num">{{ f.ano or '—' }}</td>
+          <td>{% if f.tem_pdf %}<span class="tag ok">sim</span>{% else %}<span class="tag off">não</span>{% endif %}</td>
+          <td class="num">{{ f.n_chunks if f.n_chunks is not none else '—' }}</td>
+          <td class="num">{{ f.n_candidatos if f.n_candidatos is not none else '—' }}{% if f.taxa_descarte %}<br><span class="sub">{{ (f.taxa_descarte*100)|round(0)|int }}% desc.</span>{% endif %}</td>
+          <td class="num">{{ f.n_extraidos if f.n_extraidos is not none else '—' }}</td>
+          <td class="num">{{ f.n_fila if f.n_fila is not none else '—' }}</td>
+          <td class="num">{{ f.n_pendentes if f.n_pendentes is not none else '—' }}</td>
+          <td class="num">{{ f.n_aceitos or 0 }}</td>
+          <td class="acoes-fonte">
+            {% if f.tem_pdf %}
+            <button class="mini" data-acao="chunks">Chunks</button>
+            <button class="mini" data-acao="prefilter" {% if f.n_chunks is none %}disabled{% endif %}>Pré-filtro</button>
+            <button class="mini" data-acao="extract" {% if f.n_candidatos is none %}disabled{% endif %} title="Chama a API Anthropic (Haiku). Pede um limite opcional.">Extrair</button>
+            <button class="mini" data-acao="queue" {% if f.n_extraidos is none %}disabled{% endif %}>Fila</button>
+            {% endif %}
+            <a href="/triagem/{{ f.id }}"><button class="mini primaria" {% if f.n_fila is none %}title="Sem fila ainda — só entrada manual"{% endif %}>Triar</button></a>
+            <button class="mini" data-acao="processado" data-valor="{{ 'false' if f.processado else 'true' }}">{{ 'Reabrir' if f.processado else 'Concluir' }}</button>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cartao">
+    <div class="cartao-topo"><span class="fonte">Saída da última ação</span></div>
+    <div class="corpo"><pre class="saida" id="saida">// resultados das ações aparecem aqui</pre></div>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const saida = document.getElementById('saida');
+const toast = document.getElementById('toast');
+function aviso(msg, erro){ toast.textContent = msg; toast.className = 'toast on' + (erro ? ' erro' : ''); setTimeout(()=>toast.className='toast', 3200); }
+async function post(url, body){
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})});
+  const j = await r.json().catch(()=>({erro:'resposta inválida'}));
+  if(!r.ok){ throw new Error(j.erro || r.statusText); }
+  return j;
+}
+document.querySelectorAll('button[data-acao]').forEach(b=>{
+  b.onclick = async ()=>{
+    const fonte = b.closest('tr').dataset.fonte;
+    const acao = b.dataset.acao;
+    let body = {};
+    if(acao === 'extract'){
+      const lim = prompt('Limite de candidatos a extrair (vazio = todos os pendentes). A API Anthropic será chamada.', '20');
+      if(lim === null) return;
+      if(lim.trim()) body.limite = parseInt(lim, 10);
+    }
+    b.disabled = true; const txt = b.textContent; b.textContent = '…';
+    try{
+      let j;
+      if(acao === 'processado') j = await post(`/api/fonte/${fonte}/processado`, {valor: b.dataset.valor === 'true'});
+      else j = await post(`/api/pipeline/${fonte}/${acao}`, body);
+      saida.textContent = JSON.stringify(j, null, 2);
+      aviso(`${acao} concluído para ${fonte}`);
+      setTimeout(()=>location.reload(), 900);
+    }catch(e){ saida.textContent = String(e.message); aviso(e.message, true); b.disabled = false; b.textContent = txt; }
+  };
+});
+document.getElementById('bBuild').onclick = async (e)=>{
+  e.target.disabled = true;
+  try{ const j = await post('/api/build'); saida.textContent = JSON.stringify(j, null, 2); aviso(`build ok — ${j.erros} erro(s), ${j.avisos} aviso(s)`, j.erros>0); }
+  catch(err){ saida.textContent = err.message; aviso(err.message, true); }
+  e.target.disabled = false;
+};
+document.getElementById('bInventario').onclick = async (e)=>{
+  e.target.disabled = true;
+  try{ const j = await post('/api/pipeline/_/inventory'); saida.textContent = JSON.stringify(j, null, 2); aviso(`${j.novas.length} fonte(s) nova(s)`); setTimeout(()=>location.reload(), 900); }
+  catch(err){ saida.textContent = err.message; aviso(err.message, true); e.target.disabled = false; }
+};
+</script>
+</body>
+</html>

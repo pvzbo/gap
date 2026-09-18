@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gap-triage",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "gap", "triage", "--porta", "8765"],
+      "port": 8765
+    },
+    {
+      "name": "gap-site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "gap", "site", "--porta", "8080", "--sem-build"],
+      "port": 8080
+    }
+  ]
+}
